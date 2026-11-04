@@ -6,6 +6,9 @@ import { NAV } from '@/lib/nav';
 import { useStore } from '@/lib/store';
 import { today } from '@/lib/util';
 import CommandPalette from './CommandPalette';
+import { useLocal } from './FxCard';
+import { rateStr } from '@/lib/fx-rates';
+import { countryForm } from '@/lib/quick';
 import Nav from './Nav';
 import { Icon } from './Icon';
 import { Bar, ConfirmHost, ModalHost, Toasts } from './ui';
@@ -13,7 +16,9 @@ import { Bar, ConfirmHost, ModalHost, Toasts } from './ui';
 const COLLAPSE_KEY = 'lifeos.nav.collapsed';
 
 function Hud({ onSearch }: { onSearch: () => void }) {
-  const { s, user, act, replace, openForm, closeForm, ask } = useStore();
+  const store = useStore();
+  const { s, user, act, replace, openForm, closeForm, ask } = store;
+  const { country, rate } = useLocal();
   const l = lvl(s.xp), cur = xpFor(l), nx = xpFor(l + 1), idx = titleIdx(l);
 
   const exportData = () => {
@@ -35,12 +40,13 @@ function Hud({ onSearch }: { onSearch: () => void }) {
   };
   const settings = () =>
     openForm('Settings',
-      [{ k: 'name', l: 'Display name in game', v: s.name }, { k: 'cur', l: 'Currency symbol', v: s.cur }],
-      (v) => act((x) => { x.name = v.name; x.cur = v.cur; }),
+      [{ k: 'name', l: 'Display name in game', v: s.name }],
+      (v) => act((x) => { x.name = v.name; }),
       {
         extra: (
           <>
-            <div className="small muted" style={{ marginBottom: 10 }}>Signed in as {user.email}{user.isAdmin ? ' · admin' : ''}</div>
+            <div className="small muted" style={{ marginBottom: 4 }}>Signed in as {user.email}{user.isAdmin ? ' · admin' : ''}</div>
+            <div className="small muted" style={{ marginBottom: 10 }}>Primary currency: USD. Other currencies are converted using the country you pick.</div>
             <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '4px 0 14px' }} />
             <div className="row wrap-r" style={{ marginBottom: 14 }}>
               <button type="button" className="btn ghost sm" onClick={exportData}><Icon n="bx-download" /> Export backup</button>
@@ -62,6 +68,9 @@ function Hud({ onSearch }: { onSearch: () => void }) {
       </div>
       <div className="chips">
         <span className="chip"><Icon n="bxs-hot" className="hot" /> {gstreak(s)}<span className="hide-s"> day streak</span></span>
+        <button className="chip fxchip" onClick={() => countryForm(store)} title="Change the country you're based in">
+          <Icon n="bx-map" /> {country ? <>{country.code}<span className="hide-s">{rate ? ` · 1 USD = ${rateStr(rate)} ${country.cur}` : country.cur === 'USD' ? ' · USD' : ''}</span></> : 'Set country'}
+        </button>
         <span className="chip" style={{ color: 'var(--gold)' }}><Icon n="bxs-coin-stack" /> {s.gold}</span>
       </div>
       <button className="icon-btn" onClick={onSearch} title="Search (⌘K)" aria-label="Search"><Icon n="bx-search" /></button>

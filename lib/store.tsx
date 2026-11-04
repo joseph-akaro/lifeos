@@ -3,7 +3,10 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import type { AuthUser, Field, Fx, State } from './types';
 import { DEF, checkTrophies, finishTimer } from './engine';
 import { beep, confettiBurst } from './fx';
+import { EMPTY_FX, hoursSince, type FxData } from './fx-rates';
 
+const FX_KEY = 'lifeos.fx';
+const FX_REFRESH_HOURS = 6;
 const LEGACY_KEY = 'lifeos.v1'; // pre-account, browser-only data; migrated once on first sign-in
 const SAVE_DELAY = 700;
 
@@ -28,6 +31,9 @@ export type SyncStatus = 'saved' | 'saving' | 'error';
 
 export interface Store {
   s: State;
+  /** Exchange rates (units per 1 USD). `status` says whether they're live, cached from an earlier visit, or missing. */
+  fx: FxData;
+  refreshFx: () => Promise<void>;
   user: AuthUser;
   sync: SyncStatus;
   now: number;
@@ -63,6 +69,7 @@ export function StoreProvider({ user, children }: { user: AuthUser; children: Re
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [sync, setSync] = useState<SyncStatus>('saved');
   const [now, setNow] = useState(() => Date.now());
+  const [fx, setFx] = useState<FxData>(EMPTY_FX);
   const seq = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirty = useRef(false);
@@ -136,6 +143,7 @@ export function StoreProvider({ user, children }: { user: AuthUser; children: Re
         if (cancelled) return;
         const s: State = { ...DEF(), ...(loaded ?? {}) };
         s.ui = { ...DEF().ui, ...s.ui };
+        s.cur = '$'; // USD is the primary currency
         checkTrophies(s, { toast: () => {}, confetti: () => {} });
         ref.current = s;
         setState(s);
@@ -146,6 +154,38 @@ export function StoreProvider({ user, children }: { user: AuthUser; children: Re
     })();
     return () => { cancelled = true; };
   }, [persist, toast]);
+
+  // exchange rates: show the last cached copy instantly, then fetch fresh ones (and again every few hours)
+  const refreshFx = useCallback(async () => {
+    try {
+      const r = await fetch('/api/fx', { cache: 'no-store' });
+      if (!r.ok) throw new Error(String(r.status));
+      const d = await r.json();
+      const next: FxData = { rates: { USD: 1, ...d.rates }, updated: d.updated, fetchedAt: Date.now(), status: 'live' };
+      setFx(next);
+      try { localStorage.setItem(FX_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
+    } catch {
+      setFx((f) => (f.status === 'live' ? f : { ...f, status: f.fetchedAt ? 'cached' : 'none' }));
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FX_KEY);
+      if (raw) setFx({ ...(JSON.parse(raw) as FxData), status: 'cached' });
+    } catch { /* ignore a corrupt cache */ }
+    refreshFx();
+    const iv = setInterval(() => refreshFx(), FX_REFRESH_HOURS * 36e5);
+    const vis = () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const c = JSON.parse(localStorage.getItem(FX_KEY) || 'null') as FxData | null;
+        if (!c || hoursSince(c.fetchedAt) > FX_REFRESH_HOURS) refreshFx();
+      } catch { refreshFx(); }
+    };
+    document.addEventListener('visibilitychange', vis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', vis); };
+  }, [refreshFx]);
 
   // flush pending changes when the tab is hidden or closed
   useEffect(() => {
@@ -197,7 +237,7 @@ export function StoreProvider({ user, children }: { user: AuthUser; children: Re
   }
   if (!state) return <div className="auth"><div className="muted">Loading your world…</div></div>;
   return (
-    <Ctx.Provider value={{ s: state, user, sync, now, act, replace, openForm, closeForm, modal, ask, dialog, answer, toasts, toast }}>
+    <Ctx.Provider value={{ s: state, fx, refreshFx, user, sync, now, act, replace, openForm, closeForm, modal, ask, dialog, answer, toasts, toast }}>
       {children}
     </Ctx.Provider>
   );

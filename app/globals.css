@@ -251,3 +251,64 @@ nav a.on .badge{background:var(--accent);color:var(--on-accent)}
 .confirm p{margin:0 0 18px;font-size:14px}
 .field>label{text-transform:none;letter-spacing:0}
 .mbox input,.mbox textarea{margin:0}
+
+/* budget by category */
+.bsum{padding:2px 0 14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.bsum b{font-size:22px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.bsum .bar{margin-top:8px}
+.neg{color:var(--bad);font-weight:600}
+.bgroup{margin-top:14px}
+.bgroup>header{display:flex;align-items:baseline;gap:10px;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.bgroup .gt{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.07em}
+.brow{display:flex;align-items:center;gap:12px;padding:9px 0}
+.brow+.brow{border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.bic{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--panel2);color:var(--mute);font-size:19px;flex:none}
+
+/* goals & investments */
+.fhint{font-size:12px;color:var(--mute);margin-top:5px}
+.goal{padding:12px 0;border-bottom:1px solid var(--line)}
+.goal:last-of-type{border-bottom:0}
+.pill.inv{margin-left:8px;color:var(--wealth)}
+.proj{margin-top:10px;font-size:13px}
+.proj ul{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:5px}
+.proj li{display:flex;gap:8px;align-items:baseline}
+.proj li .bx{color:var(--mute);font-size:16px;flex:none;position:relative;top:2px}
+.dl{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:8px;margin-bottom:8px}
+.dl .bx{font-size:17px;flex:none;position:relative;top:1px}
+.dl.ok{background:color-mix(in srgb,var(--good) 12%,transparent);color:var(--good)}
+.dl.warn{background:color-mix(in srgb,var(--career) 14%,transparent);color:var(--career)}
+.dl span{color:var(--text)}
+.gchart{display:block;width:100%;height:84px;margin-top:4px}
+.gleg{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.gleg .ln{display:inline-block;width:16px;height:0;border-top:2px solid var(--wealth);margin-left:8px}
+.gleg .ln.dash{border-top:2px dashed var(--mute)}
+.gleg .ln.gold{border-top:2px dashed var(--gold)}
+.gnote{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+
+/* country & exchange rate */
+.chip.fxchip{border:0;color:var(--text);cursor:pointer;font-family:inherit}
+.chip.fxchip:hover{background:color-mix(in srgb,var(--accent) 14%,var(--panel2))}
+.ctag{display:grid;place-items:center;min-width:42px;height:42px;padding:0 6px;border-radius:10px;background:color-mix(in srgb,var(--accent) 16%,var(--panel2));color:var(--accent);font-weight:800;letter-spacing:.04em;flex:none}
+.ctag.sm{min-width:30px;height:26px;border-radius:7px;font-size:11px}
+.fxhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fxrate{text-align:right}
+.fxrate b{font-size:18px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.conv{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px;margin:14px 0 6px}
+.conv>.bx{font-size:22px;color:var(--mute);padding-bottom:9px}
+.conv label{display:block;font-size:12px;font-weight:600;color:var(--mute)}
+.conv input{display:block;width:100%;margin-top:4px;padding:9px 11px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;font-size:16px;font-variant-numeric:tabular-nums}
+.conv input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.fxstatus{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--mute)}
+.fxstatus>span{flex:1}
+.fxstatus .bx{font-size:17px;flex:none}
+.fxstatus.live .bx{color:var(--good)}
+.fxstatus.cached .bx{color:var(--career)}
+.fxstatus.none .bx{color:var(--bad)}
+.fxnote{margin-top:8px;line-height:1.5}
+.fxnote a{color:var(--accent);text-decoration:underline}
+.stays{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.stays .lab{text-transform:uppercase;letter-spacing:.07em;font-weight:700;font-size:11px;margin-bottom:2px}
+.linkbtn{display:inline-flex;align-items:center;gap:4px;margin-top:12px;border:0;background:none;color:var(--accent);cursor:pointer;font-weight:600;padding:0}
+.ratelist{margin-top:6px}
+.ratelist .item.cur{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:8px;padding-left:8px;padding-right:8px}
+@media(max-width:760px){.fxrate{text-align:left;width:100%}}

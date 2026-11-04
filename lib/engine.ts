@@ -13,6 +13,17 @@ export const AREA_OPTS: [string, string][] = AREA_KEYS.map((k) => [k, AREAS[k].n
 export const TITLES = ['Rookie', 'Apprentice', 'Adventurer', 'Challenger', 'Veteran', 'Expert', 'Master', 'Champion', 'Legend', 'Mythic'];
 export const AVATARS = ['bx-leaf', 'bx-bulb', 'bx-compass', 'bx-rocket', 'bx-shield-quarter', 'bx-medal', 'bx-award', 'bx-crown', 'bx-diamond', 'bx-planet'];
 export const EXP_CATS = ['Food', 'Transport', 'Housing', 'Bills', 'Health', 'Fun', 'Learning', 'Shopping', 'Other'];
+/** Budget categories are grouped so the budget reads as needs vs. wants vs. growth. Custom categories land in "Other". */
+export const CAT_GROUPS: { id: string; title: string; hint: string; cats: string[] }[] = [
+  { id: 'essentials', title: 'Essentials', hint: 'Things you need every month', cats: ['Housing', 'Bills', 'Food', 'Transport', 'Health'] },
+  { id: 'lifestyle', title: 'Lifestyle', hint: 'Things you want', cats: ['Fun', 'Shopping'] },
+  { id: 'growth', title: 'Growth', hint: 'Investing in yourself', cats: ['Learning'] },
+];
+export const CAT_ICONS: Record<string, string> = {
+  Housing: 'bx-home-alt-2', Bills: 'bx-receipt', Food: 'bx-restaurant', Transport: 'bx-bus', Health: 'bx-plus-medical',
+  Fun: 'bx-joystick', Shopping: 'bx-shopping-bag', Learning: 'bx-book-open', Other: 'bx-dots-horizontal-rounded',
+};
+export const catIcon = (c: string) => CAT_ICONS[c] ?? 'bx-purchase-tag';
 export const INC_CATS = ['Salary', 'Freelance', 'Business', 'Gift', 'Other'];
 export const SKILL_CATS = ['Tech', 'Creative', 'Business', 'Language', 'Body', 'Other'];
 export const DIFF: [string, string][] = [['1', 'Easy'], ['2', 'Medium'], ['3', 'Hard']];
@@ -26,6 +37,7 @@ export const DEF = (): State => ({
     { id: uid(), name: 'Learn something for 20 min', area: 'skills', diff: 2, done: [] },
     { id: uid(), name: 'Check my money', area: 'wealth', diff: 1, done: [] },
   ],
+  country: '', stays: [],
   tasks: [], timer: null, focus: [], blocks: [], tx: [], txXp: {}, budget: {}, goals: [], skills: [],
   objectives: [], wins: [], reviews: [], trophies: {},
   rewards: [
