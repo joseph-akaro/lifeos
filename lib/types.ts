@@ -1,5 +1,5 @@
 export type Area = 'time' | 'wealth' | 'career' | 'skills' | 'vitality';
-export type Tab = 'home' | 'quests' | 'time' | 'money' | 'skills' | 'career' | 'trophies';
+export interface AuthUser { id: string; email: string; name: string; isAdmin: boolean }
 
 export interface Habit { id: string; name: string; area: Area; diff: number; done: string[] }
 export interface Task { id: string; text: string; area: Area; diff: number; due: string; done: boolean }
@@ -39,7 +39,7 @@ export interface State {
   reviews: Review[];
   trophies: Record<string, string>;
   rewards: Reward[];
-  ui: { tab: Tab; month: string; tf: 'open' | 'done' | 'all' };
+  ui: { month: string; tf: 'open' | 'done' | 'all' };
 }
 
 export interface Fx {

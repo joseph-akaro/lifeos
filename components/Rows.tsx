@@ -1,6 +1,7 @@
 'use client';
 import type { Habit, Task } from '@/lib/types';
 import { award, habitStreak } from '@/lib/engine';
+import { toggleHabit } from '@/lib/quick';
 import { useStore } from '@/lib/store';
 import { today } from '@/lib/util';
 import { AreaDot, Chk } from './ui';
@@ -8,13 +9,7 @@ import { AreaDot, Chk } from './ui';
 export function HabitRow({ h, deletable }: { h: Habit; deletable?: boolean }) {
   const { act } = useStore();
   const t = today(), on = h.done.includes(t), st = habitStreak(h.done);
-  const toggle = () =>
-    act((s, fx) => {
-      const x = s.habits.find((y) => y.id === h.id)!;
-      const i = x.done.indexOf(t);
-      if (i < 0) { x.done.push(t); award(s, fx, x.diff * 10, x.area, x.name); }
-      else { x.done.splice(i, 1); award(s, fx, -x.diff * 10, x.area, 'Undo: ' + x.name); }
-    });
+  const toggle = () => toggleHabit(act, h.id);
   return (
     <div className={`item ${on ? 'done' : ''}`}>
       <Chk on={on} onClick={toggle} />

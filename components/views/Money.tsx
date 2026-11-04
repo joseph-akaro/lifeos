@@ -1,4 +1,5 @@
 'use client';
+import { addTx } from '@/lib/quick';
 import { EXP_CATS, INC_CATS, award, fmt, monthTx, sumTx } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { addMonths, monthName, monthOf, today, uid } from '@/lib/util';
@@ -23,22 +24,6 @@ export default function Money() {
   const vals = ms.map((x) => [sumTx(monthTx(s, x, 'income')), sumTx(monthTx(s, x, 'expense'))]);
   const mx = Math.max(1, ...vals.flat());
   const go = (n: number) => act((x) => { x.ui.month = addMonths(x.ui.month, n); });
-
-  const addTx = () =>
-    openForm('New transaction', [
-      { k: 'type', l: 'Type', t: 'select', o: [['expense', 'Expense'], ['income', 'Income']], v: 'expense' },
-      { k: 'amt', l: 'Amount', t: 'number' },
-      { k: 'cat', l: 'Category', dl: [...EXP_CATS, ...INC_CATS], ph: 'Food, Salary…' },
-      { k: 'note', l: 'Note (optional)', req: false },
-      { k: 'date', l: 'Date', t: 'date', v: today() },
-    ], (v) => act((x, fx) => {
-      const amt = +v.amt;
-      if (!(amt > 0)) return;
-      x.tx.push({ id: uid(), type: v.type as 'income' | 'expense', amt, cat: v.cat.trim() || 'Other', note: v.note, date: v.date });
-      x.ui.month = monthOf(v.date);
-      const c = x.txXp[today()] || 0;
-      if (c < 3) { x.txXp[today()] = c + 1; award(x, fx, 5, 'wealth', 'Logged ' + v.type); }
-    }), { btn: 'Add' });
 
   const setBudget = () =>
     openForm('Monthly budget', [
@@ -135,7 +120,7 @@ export default function Money() {
         {!s.goals.length && <Empty>Create a goal — an emergency fund, a trip, a laptop…</Empty>}
       </div>
       <div className="card" style={{ marginTop: 16 }}>
-        <h3>Transactions <span className="sub">first 3 logged each day earn XP</span> <button className="btn sm" onClick={addTx}>+ Transaction</button></h3>
+        <h3>Transactions <span className="sub">first 3 logged each day earn XP</span> <button className="btn sm" onClick={() => addTx({ act, openForm })}>+ Transaction</button></h3>
         {tx.map((t) => (
           <div className="item" key={t.id}>
             <span className="small muted" style={{ width: 78 }}>{t.date.slice(5)}</span>

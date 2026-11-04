@@ -1,5 +1,10 @@
-node_module/
-node_module
-.env
-dist/
+node_modules/
 .next/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+
+# secrets
+.env
+.env.*
+!.env.example
