@@ -1,6 +1,7 @@
 import type { Area } from './types';
 import type { Store } from './store';
 import { AREA_OPTS, DIFF, EXP_CATS, INC_CATS, SKILL_CATS, award } from './engine';
+import { SKILL_ICONS } from './icons';
 import { monthOf, today, uid } from './util';
 
 type Ctx = Pick<Store, 'act' | 'openForm'>;
@@ -17,7 +18,7 @@ export const addTask = ({ act, openForm }: Ctx) =>
     { k: 'text', l: 'Quest', ph: 'e.g. Send invoice to client' },
     { k: 'area', l: 'Life area', t: 'select', o: AREA_OPTS, v: 'career' },
     { k: 'diff', l: 'Difficulty (15/30/45 XP)', t: 'select', o: DIFF, v: '1' },
-    { k: 'due', l: 'Due date (optional)', t: 'date', req: false },
+    { k: 'due', l: 'Due date', t: 'date', req: false },
   ], (v) => act((x) => { x.tasks.push({ id: uid(), text: v.text.trim(), area: v.area as Area, diff: +v.diff, due: v.due || '', done: false }); }), { btn: 'Add quest' });
 
 export const addTx = ({ act, openForm }: Ctx) =>
@@ -25,7 +26,7 @@ export const addTx = ({ act, openForm }: Ctx) =>
     { k: 'type', l: 'Type', t: 'select', o: [['expense', 'Expense'], ['income', 'Income']], v: 'expense' },
     { k: 'amt', l: 'Amount', t: 'number' },
     { k: 'cat', l: 'Category', dl: [...EXP_CATS, ...INC_CATS], ph: 'Food, Salary…' },
-    { k: 'note', l: 'Note (optional)', req: false },
+    { k: 'note', l: 'Note', req: false },
     { k: 'date', l: 'Date', t: 'date', v: today() },
   ], (v) => act((x, fx) => {
     const amt = +v.amt;
@@ -39,9 +40,9 @@ export const addTx = ({ act, openForm }: Ctx) =>
 export const addSkill = ({ act, openForm }: Ctx) =>
   openForm('New skill', [
     { k: 'name', l: 'Skill', ph: 'Python, Spanish, Public speaking…' },
-    { k: 'icon', l: 'Emoji', v: '🧠' },
+    { k: 'icon', l: 'Icon', t: 'icons', o: SKILL_ICONS },
     { k: 'cat', l: 'Category', t: 'select', o: SKILL_CATS.map((c) => [c, c]) },
-  ], (v) => act((x) => { x.skills.push({ id: uid(), name: v.name.trim(), icon: v.icon || '🧠', cat: v.cat }); }), { btn: 'Add skill' });
+  ], (v) => act((x) => { x.skills.push({ id: uid(), name: v.name.trim(), icon: v.icon || 'bx-brain', cat: v.cat }); }), { btn: 'Add skill' });
 
 export const addWin = ({ act, openForm }: Ctx) =>
   openForm('Log a career win', [{ k: 'text', l: 'What did you achieve?', t: 'textarea' }], (v) =>

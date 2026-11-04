@@ -50,7 +50,7 @@ export interface Fx {
 export interface Field {
   k: string;
   l: string;
-  t?: 'text' | 'number' | 'date' | 'time' | 'select' | 'textarea';
+  t?: 'text' | 'number' | 'date' | 'time' | 'select' | 'textarea' | 'icons';
   v?: string | number;
   o?: [string, string][];
   dl?: string[];

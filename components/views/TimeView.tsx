@@ -4,6 +4,7 @@ import type { Area } from '@/lib/types';
 import { useStore } from '@/lib/store';
 import { addDays, hm, pad, toMin, today, uid } from '@/lib/util';
 import { AreaDot, Chk, Empty } from '../ui';
+import { Icon } from '../Icon';
 
 export default function TimeView() {
   const { s, act, openForm, now } = useStore();
@@ -125,7 +126,7 @@ export default function TimeView() {
             <AreaDot a={b.area} />
             <span className="t"><b>{b.start}–{b.end}</b> {b.label}</span>
             <span className="xp">+10</span>
-            <button className="btn danger" onClick={() => act((x) => { x.blocks = x.blocks.filter((y) => y.id !== b.id); })}>✕</button>
+            <button className="btn danger" onClick={() => act((x) => { x.blocks = x.blocks.filter((y) => y.id !== b.id); })} aria-label="Delete"><Icon n="bx-trash" /></button>
           </div>
         ))}
         {!blocks.length && <Empty>Plan your day: add time blocks, then tick them off for XP.</Empty>}

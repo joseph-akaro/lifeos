@@ -15,6 +15,14 @@ export interface ModalSpec {
   onSubmit: (v: Record<string, string>) => void;
   extra?: ReactNode;
 }
+export interface DialogSpec {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  danger: boolean;
+  alertOnly: boolean;
+}
+export interface AskOpts { title: string; message: string; confirmLabel?: string; danger?: boolean; alertOnly?: boolean }
 export interface ToastItem { id: number; msg: string; big?: boolean }
 export type SyncStatus = 'saved' | 'saving' | 'error';
 
@@ -28,6 +36,10 @@ export interface Store {
   openForm: (title: string, fields: Field[], onSubmit: (v: Record<string, string>) => void, opts?: { btn?: string; extra?: ReactNode }) => void;
   closeForm: () => void;
   modal: ModalSpec | null;
+  /** In-app replacement for window.confirm / window.alert. Resolves true when confirmed. */
+  ask: (o: AskOpts) => Promise<boolean>;
+  dialog: DialogSpec | null;
+  answer: (ok: boolean) => void;
   toasts: ToastItem[];
   toast: (msg: string, big?: boolean) => void;
 }
@@ -46,6 +58,8 @@ export function StoreProvider({ user, children }: { user: AuthUser; children: Re
   const [loadError, setLoadError] = useState(false);
   const ref = useRef<State | null>(null);
   const [modal, setModal] = useState<ModalSpec | null>(null);
+  const [dialog, setDialog] = useState<DialogSpec | null>(null);
+  const resolver = useRef<((ok: boolean) => void) | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [sync, setSync] = useState<SyncStatus>('saved');
   const [now, setNow] = useState(() => Date.now());
@@ -161,6 +175,16 @@ export function StoreProvider({ user, children }: { user: AuthUser; children: Re
     setModal({ id: ++seq.current, title, fields, onSubmit, btn: opts?.btn ?? 'Save', extra: opts?.extra });
   }, []);
   const closeForm = useCallback(() => setModal(null), []);
+  const ask = useCallback((o: AskOpts) => new Promise<boolean>((resolve) => {
+    resolver.current?.(false);
+    resolver.current = resolve;
+    setDialog({ title: o.title, message: o.message, confirmLabel: o.confirmLabel ?? 'Confirm', danger: !!o.danger, alertOnly: !!o.alertOnly });
+  }), []);
+  const answer = useCallback((ok: boolean) => {
+    resolver.current?.(ok);
+    resolver.current = null;
+    setDialog(null);
+  }, []);
 
   if (loadError) {
     return (
@@ -173,7 +197,7 @@ export function StoreProvider({ user, children }: { user: AuthUser; children: Re
   }
   if (!state) return <div className="auth"><div className="muted">Loading your world…</div></div>;
   return (
-    <Ctx.Provider value={{ s: state, user, sync, now, act, replace, openForm, closeForm, modal, toasts, toast }}>
+    <Ctx.Provider value={{ s: state, user, sync, now, act, replace, openForm, closeForm, modal, ask, dialog, answer, toasts, toast }}>
       {children}
     </Ctx.Provider>
   );

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getUser } from '@/lib/auth/user';
 import { ensureSchema, sql } from '@/lib/db';
+import { Icon } from '@/components/Icon';
 import { AVATARS, TITLES, lvl, titleIdx } from '@/lib/engine';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +32,7 @@ export default async function AdminPage() {
           return (
             <div className="item" key={r.user_id}>
               <span className="muted small" style={{ width: 24 }}>{i + 1}</span>
-              <span style={{ fontSize: 22 }}>{AVATARS[titleIdx(l)]}</span>
+              <span className="avatar sm"><Icon n={AVATARS[titleIdx(l)]} /></span>
               <span className="t"><b>{r.name}</b>{r.user_id === me.id && <span className="pill" style={{ marginLeft: 6 }}>you</span>}
                 <div className="small muted">{r.email}</div></span>
               <span className="small muted">Lv {l} · {TITLES[titleIdx(l)]}</span>
