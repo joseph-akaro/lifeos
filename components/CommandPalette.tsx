@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { skillIcon } from '@/lib/icons';
 import { NAV } from '@/lib/nav';
-import { addHabit, addSkill, addTask, addTx, addWin, startFocus, toggleHabit } from '@/lib/quick';
+import { addHabit, addSkill, addTask, addTx, addWin, countryForm, startFocus, toggleHabit } from '@/lib/quick';
 import { useStore } from '@/lib/store';
 import { today } from '@/lib/util';
 import { authClient } from '@/lib/auth/client';
@@ -36,7 +36,8 @@ export default function CommandPalette({ open, onClose, toggleNav }: { open: boo
     const actions: Item[] = [
       { id: 'a-habit', icon: 'bx-repeat', label: 'Add habit', group: 'Actions', kw: 'new create daily', run: () => addHabit(ctx) },
       { id: 'a-task', icon: 'bx-task', label: 'Add quest', group: 'Actions', kw: 'new create task todo', run: () => addTask(ctx) },
-      { id: 'a-tx', icon: 'bx-wallet', label: 'Add transaction', group: 'Actions', kw: 'expense income money spend log', run: () => { router.push('/money'); addTx(ctx); } },
+      { id: 'a-tx', icon: 'bx-wallet', label: 'Add transaction', group: 'Actions', kw: 'expense income money spend log', run: () => { router.push('/money'); addTx(store); } },
+      { id: 'a-country', icon: 'bx-map', label: 'Change country', group: 'Actions', kw: 'location move currency exchange rate stay travel', run: () => { router.push('/money'); countryForm(store); } },
       { id: 'a-skill', icon: 'bx-brain', label: 'Add skill', group: 'Actions', kw: 'new learn', run: () => { router.push('/skills'); addSkill(ctx); } },
       { id: 'a-win', icon: 'bx-trophy', label: 'Log a career win', group: 'Actions', kw: 'achievement', run: () => { router.push('/career'); addWin(ctx); } },
       s.timer
@@ -62,7 +63,7 @@ export default function CommandPalette({ open, onClose, toggleNav }: { open: boo
     if (!s.tx.some((x) => x.date === t)) sug.push({ ...actions.find((a) => a.id === 'a-tx')!, group: 'Suggested', label: "Log today's spending" });
     if (!s.timer && sug.length < 5) sug.push({ ...actions.find((a) => a.id === 'a-focus')!, group: 'Suggested' });
     return { suggested: sug.slice(0, 5), all: [...pages, ...actions, ...habits, ...skills] };
-  }, [s, user.isAdmin, act, openForm, router, toggleNav]);
+  }, [s, store.fx, user.isAdmin, act, openForm, router, toggleNav]); // eslint-disable-line react-hooks/exhaustive-deps -- `store` is a fresh object each render; s and fx are the parts that matter
 
   const results = useMemo(() => {
     const terms = q.toLowerCase().split(/\s+/).filter(Boolean);

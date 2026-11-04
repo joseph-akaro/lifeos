@@ -5,8 +5,25 @@ export interface Habit { id: string; name: string; area: Area; diff: number; don
 export interface Task { id: string; text: string; area: Area; diff: number; due: string; done: boolean }
 export interface Focus { date: string; min: number; skillId: string; label: string }
 export interface Block { id: string; date: string; label: string; area: Area; start: string; end: string; done: boolean }
-export interface Tx { id: string; type: 'income' | 'expense'; amt: number; cat: string; note: string; date: string }
-export interface Goal { id: string; name: string; target: number; saved: number; paid: boolean }
+export interface Tx {
+  id: string; type: 'income' | 'expense';
+  /** Always in USD, the primary currency. */
+  amt: number; cat: string; note: string; date: string;
+  /** Set when it was paid in another currency: the ISO code, the original amount, and the rate used (units per 1 USD). */
+  cur?: string; orig?: number; rate?: number;
+}
+export interface Stay { id: string; country: string; start: string; end?: string }
+export interface Goal {
+  id: string; name: string; target: number; saved: number; paid: boolean;
+  /** Older goals have no kind and are plain savings. */
+  kind?: 'savings' | 'investment';
+  /** Expected annual return in percent (investments). */
+  rate?: number;
+  /** Planned monthly contribution (investments). */
+  monthly?: number;
+  /** Optional target date, YYYY-MM-DD. */
+  deadline?: string;
+}
 export interface Skill { id: string; name: string; icon: string; cat: string }
 export interface Step { id: string; text: string; done: boolean }
 export interface Objective { id: string; title: string; due: string; steps: Step[]; done: boolean; paid: boolean }
@@ -26,6 +43,9 @@ export interface State {
   log: LogEntry[];
   habits: Habit[];
   tasks: Task[];
+  /** Country you are based in right now (ISO code), and where you have been. */
+  country: string;
+  stays: Stay[];
   timer: Timer | null;
   focus: Focus[];
   blocks: Block[];
@@ -56,4 +76,10 @@ export interface Field {
   dl?: string[];
   ph?: string;
   req?: boolean;
+  /** Small helper text under the control. */
+  hint?: string;
+  /** Only show (and validate) this field when another field has the given value. */
+  showIf?: [key: string, value: string];
+  /** Hide this field when another field has the given value. */
+  hideIf?: [key: string, value: string];
 }

@@ -108,7 +108,7 @@ function Dropdown({ value, options, onChange, k, label }: { value: string; optio
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-function DateField({ value, onChange, k }: { value: string; onChange: (v: string) => void; k: string }) {
+function DateField({ value, onChange, k, clearable }: { value: string; onChange: (v: string) => void; k: string; clearable?: boolean }) {
   const p = usePopover(318);
   const [view, setView] = useState(() => (value || today()).slice(0, 7));
   const [y, m] = view.split('-').map(Number);
@@ -139,7 +139,10 @@ function DateField({ value, onChange, k }: { value: string; onChange: (v: string
               return <button type="button" key={v} className={`day ${v === value ? 'sel' : ''} ${v === t ? 'today' : ''}`} onClick={() => pick(v)}>{i + 1}</button>;
             })}
           </div>
-          <div className="calfoot"><button type="button" className="btn ghost sm" onClick={() => pick(t)}>Today</button></div>
+          <div className="calfoot">
+            {clearable && value && <button type="button" className="btn ghost sm" onClick={() => pick('')}>Clear</button>}
+            <button type="button" className="btn ghost sm" onClick={() => pick(t)}>Today</button>
+          </div>
         </div>
       )}
     </div>
@@ -171,28 +174,30 @@ function ModalForm({ modal }: { modal: ModalSpec }) {
   const root = useRef<HTMLFormElement>(null);
   const set = (k: string, v: string) => { setVals((x) => ({ ...x, [k]: v })); setErrs((x) => { const n = { ...x }; delete n[k]; return n; }); };
 
+  const visible = modal.fields.filter((f) => (!f.showIf || vals[f.showIf[0]] === f.showIf[1]) && (!f.hideIf || vals[f.hideIf[0]] !== f.hideIf[1]));
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const bad: Record<string, string> = {};
-    for (const f of modal.fields) {
+    for (const f of visible) {
       const v = (vals[f.k] ?? '').trim();
       if (f.req !== false && !v) bad[f.k] = f.t === 'number' ? 'Enter a number' : f.t === 'date' ? 'Pick a date' : 'This field is required';
       else if (f.t === 'number' && v && !Number.isFinite(+v)) bad[f.k] = 'Enter a valid number';
     }
     if (Object.keys(bad).length) {
       setErrs(bad);
-      const first = modal.fields.find((f) => bad[f.k]);
+      const first = visible.find((f) => bad[f.k]);
       requestAnimationFrame(() => root.current?.querySelector<HTMLElement>(`[name="${first?.k}"],[data-k="${first?.k}"]`)?.focus());
       return;
     }
     closeForm();
-    modal.onSubmit(vals);
+    modal.onSubmit(Object.fromEntries(visible.map((f) => [f.k, vals[f.k] ?? ''])));
   };
 
   const control = (f: Field, i: number) => {
     const v = vals[f.k] ?? '';
     if (f.t === 'select') return <Dropdown k={f.k} value={v} options={f.o!} onChange={(x) => set(f.k, x)} label={f.l} />;
-    if (f.t === 'date') return <DateField k={f.k} value={v} onChange={(x) => set(f.k, x)} />;
+    if (f.t === 'date') return <DateField k={f.k} value={v} onChange={(x) => set(f.k, x)} clearable={f.req === false} />;
     if (f.t === 'time') return <TimeField k={f.k} value={v} onChange={(x) => set(f.k, x)} />;
     if (f.t === 'icons')
       return (
@@ -223,10 +228,11 @@ function ModalForm({ modal }: { modal: ModalSpec }) {
 
   return (
     <form ref={root} onSubmit={submit} noValidate>
-      {modal.fields.map((f, i) => (
+      {visible.map((f, i) => (
         <div className={`field ${errs[f.k] ? 'bad' : ''}`} key={f.k}>
           <label>{f.l}{f.req === false && <span className="opt-tag"> · optional</span>}</label>
           {control(f, i)}
+          {f.hint && <div className="fhint">{f.hint}</div>}
           {errs[f.k] && <div className="ferr"><Icon n="bx-error-circle" /> {errs[f.k]}</div>}
         </div>
       ))}
