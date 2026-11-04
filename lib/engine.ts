@@ -33,7 +33,7 @@ export const DEF = (): State => ({
     { id: uid(), name: '🎮 1h guilt-free gaming', cost: 120 },
     { id: uid(), name: '🍕 Treat meal', cost: 300 },
   ],
-  ui: { tab: 'home', month: monthOf(today()), tf: 'open' },
+  ui: { month: monthOf(today()), tf: 'open' },
 });
 
 /* ---- levels ---- */

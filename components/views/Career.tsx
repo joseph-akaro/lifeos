@@ -1,4 +1,5 @@
 'use client';
+import { addWin } from '@/lib/quick';
 import { award } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { mondayOf, today, uid } from '@/lib/util';
@@ -35,10 +36,6 @@ export default function Career() {
       }
     });
 
-  const addWin = () =>
-    openForm('Log a career win', [{ k: 'text', l: 'What did you achieve?', t: 'textarea' }], (v) =>
-      act((x, fx) => { x.wins.unshift({ d: today(), text: v.text.trim() }); award(x, fx, 10, 'career', 'Career win'); }));
-
   const review = () =>
     openForm('Weekly review', [
       { k: 'win', l: 'Biggest win this week', t: 'textarea' },
@@ -53,7 +50,7 @@ export default function Career() {
     <>
       <h2 className="pg">Career
         <span className="row">
-          <button className="btn ghost" onClick={addWin}>+ Log a win</button>
+          <button className="btn ghost" onClick={() => addWin({ act, openForm })}>+ Log a win</button>
           <button className="btn" disabled={reviewed} onClick={review}>{reviewed ? 'Reviewed this week ✓' : 'Weekly review'}</button>
         </span>
       </h2>

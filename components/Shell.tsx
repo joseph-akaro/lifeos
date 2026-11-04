@@ -1,26 +1,18 @@
 'use client';
-import type { ComponentType } from 'react';
-import type { Tab } from '@/lib/types';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { AVATARS, DEF, TITLES, gstreak, lvl, titleIdx, xpFor } from '@/lib/engine';
+import { NAV } from '@/lib/nav';
 import { useStore } from '@/lib/store';
 import { today } from '@/lib/util';
+import CommandPalette from './CommandPalette';
+import Nav from './Nav';
 import { Bar, ModalHost, Toasts } from './ui';
-import Home from './views/Home';
-import Quests from './views/Quests';
-import TimeView from './views/TimeView';
-import Money from './views/Money';
-import Skills from './views/Skills';
-import Career from './views/Career';
-import Trophies from './views/Trophies';
 
-const VIEWS: Record<Tab, ComponentType> = { home: Home, quests: Quests, time: TimeView, money: Money, skills: Skills, career: Career, trophies: Trophies };
-const NAV: [Tab, string, string][] = [
-  ['home', '🏠', 'Home'], ['quests', '⚔️', 'Quests'], ['time', '⏱️', 'Time'], ['money', '💰', 'Money'],
-  ['skills', '🧠', 'Skills'], ['career', '💼', 'Career'], ['trophies', '🏆', 'Rewards'],
-];
+const COLLAPSE_KEY = 'lifeos.nav.collapsed';
 
-function Hud() {
-  const { s, act, replace, openForm, closeForm } = useStore();
+function Hud({ onSearch }: { onSearch: () => void }) {
+  const { s, user, act, replace, openForm, closeForm } = useStore();
   const l = lvl(s.xp), cur = xpFor(l), nx = xpFor(l + 1), idx = titleIdx(l);
 
   const exportData = () => {
@@ -42,17 +34,18 @@ function Hud() {
   };
   const settings = () =>
     openForm('Settings',
-      [{ k: 'name', l: 'Your name', v: s.name }, { k: 'cur', l: 'Currency symbol', v: s.cur }],
+      [{ k: 'name', l: 'Display name in game', v: s.name }, { k: 'cur', l: 'Currency symbol', v: s.cur }],
       (v) => act((x) => { x.name = v.name; x.cur = v.cur; }),
       {
         extra: (
           <>
-            <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '14px 0' }} />
+            <div className="small muted" style={{ marginBottom: 10 }}>Signed in as {user.email}{user.isAdmin ? ' · admin' : ''}</div>
+            <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '4px 0 14px' }} />
             <div className="row wrap-r" style={{ marginBottom: 14 }}>
               <button type="button" className="btn ghost sm" onClick={exportData}>⬇ Export backup</button>
               <button type="button" className="btn ghost sm" onClick={importData}>⬆ Import backup</button>
               <button type="button" className="btn danger"
-                onClick={() => { if (confirm('Erase ALL LifeOS data and start over? Export a backup first!')) { replace(DEF()); closeForm(); } }}>Reset all</button>
+                onClick={() => { if (confirm('Erase ALL your LifeOS progress and start over? Export a backup first!')) { replace(DEF()); closeForm(); } }}>Reset all</button>
             </div>
           </>
         ),
@@ -70,31 +63,60 @@ function Hud() {
         <span className="chip">🔥 {gstreak(s)}<span className="hide-s"> day streak</span></span>
         <span className="chip" style={{ color: 'var(--gold)' }}>🪙 {s.gold}</span>
       </div>
+      <button className="icon-btn" onClick={onSearch} title="Search (⌘K)">🔍</button>
       <button className="icon-btn" onClick={settings} title="Settings">⚙️</button>
     </div>
   );
 }
 
-export default function Shell() {
-  const { s, act } = useStore();
-  const View = VIEWS[s.ui.tab];
+const typing = (el: EventTarget | null) => {
+  const t = el as HTMLElement | null;
+  return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+};
+
+export default function Shell({ children }: { children: ReactNode }) {
+  const { user, modal } = useStore();
+  const router = useRouter();
+  const [pal, setPal] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
+  });
+  const lastG = useRef(0);
+
+  const toggleNav = useCallback(() => {
+    setCollapsed((c) => {
+      try { localStorage.setItem(COLLAPSE_KEY, c ? '0' : '1'); } catch { /* ignore */ }
+      return !c;
+    });
+  }, []);
+
+  // ⌘K / Ctrl+K or "/" opens search; "g" then a letter jumps to a page
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPal((p) => !p); return; }
+      if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || modal) return;
+      if (e.key === '/') { e.preventDefault(); setPal(true); return; }
+      if (e.key === 'b') { toggleNav(); return; }
+      if (e.key === 'g') { lastG.current = Date.now(); return; }
+      if (Date.now() - lastG.current < 1000) {
+        const n = NAV.find((x) => x.key === e.key && (!x.admin || user.isAdmin));
+        if (n) { lastG.current = 0; router.push(n.href); }
+      }
+    };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [router, user.isAdmin, modal, toggleNav]);
+
   return (
     <>
-      <div className="app">
-        <nav>
-          <div className="logo">LifeOS</div>
-          {NAV.map(([k, ic, n]) => (
-            <button key={k} className={s.ui.tab === k ? 'on' : ''}
-              onClick={() => { act((x) => { x.ui.tab = k; }); window.scrollTo(0, 0); }}>
-              <span className="ic">{ic}</span>{n}
-            </button>
-          ))}
-        </nav>
+      <div className={`app ${collapsed ? 'collapsed' : ''}`}>
+        <Nav onSearch={() => setPal(true)} collapsed={collapsed} onCollapse={toggleNav} />
         <div className="wrap">
-          <div id="top"><Hud /></div>
-          <main><View /></main>
+          <div id="top"><Hud onSearch={() => setPal(true)} /></div>
+          <main>{children}</main>
         </div>
       </div>
+      <CommandPalette open={pal} onClose={() => setPal(false)} toggleNav={toggleNav} />
       <ModalHost />
       <Toasts />
     </>

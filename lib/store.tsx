@@ -1,10 +1,11 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Field, Fx, State } from './types';
+import type { AuthUser, Field, Fx, State } from './types';
 import { DEF, checkTrophies, finishTimer } from './engine';
 import { beep, confettiBurst } from './fx';
 
-const KEY = 'lifeos.v1';
+const LEGACY_KEY = 'lifeos.v1'; // pre-account, browser-only data; migrated once on first sign-in
+const SAVE_DELAY = 700;
 
 export interface ModalSpec {
   id: number;
@@ -15,9 +16,12 @@ export interface ModalSpec {
   extra?: ReactNode;
 }
 export interface ToastItem { id: number; msg: string; big?: boolean }
+export type SyncStatus = 'saved' | 'saving' | 'error';
 
-interface Store {
+export interface Store {
   s: State;
+  user: AuthUser;
+  sync: SyncStatus;
   now: number;
   act: (fn: (s: State, fx: Fx) => void) => void;
   replace: (s: State) => void;
@@ -31,23 +35,55 @@ interface Store {
 const Ctx = createContext<Store>(null as unknown as Store);
 export const useStore = () => useContext(Ctx);
 
-function persist(s: State) {
-  try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* storage unavailable */ }
+async function fetchState(): Promise<State | null> {
+  const r = await fetch('/api/state', { cache: 'no-store' });
+  if (!r.ok) throw new Error('load failed');
+  return (await r.json()).data;
 }
 
-export function StoreProvider({ children }: { children: ReactNode }) {
+export function StoreProvider({ user, children }: { user: AuthUser; children: ReactNode }) {
   const [state, setState] = useState<State | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const ref = useRef<State | null>(null);
   const [modal, setModal] = useState<ModalSpec | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [sync, setSync] = useState<SyncStatus>('saved');
   const [now, setNow] = useState(() => Date.now());
   const seq = useRef(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirty = useRef(false);
 
   const toast = useCallback((msg: string, big?: boolean) => {
     const id = ++seq.current;
     setToasts((t) => [...t, { id, msg, big }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), big ? 3800 : 2200);
   }, []);
+
+  const flush = useCallback(async () => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    if (!dirty.current || !ref.current) return;
+    dirty.current = false;
+    setSync('saving');
+    try {
+      const r = await fetch('/api/state', {
+        method: 'PUT', keepalive: true,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(ref.current),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      setSync(dirty.current ? 'saving' : 'saved');
+    } catch {
+      dirty.current = true;
+      setSync('error');
+    }
+  }, []);
+
+  const persist = useCallback(() => {
+    dirty.current = true;
+    setSync('saving');
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(flush, SAVE_DELAY);
+  }, [flush]);
 
   const act = useCallback((fn: (s: State, fx: Fx) => void) => {
     if (!ref.current) return;
@@ -60,30 +96,50 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     fn(n, fx);
     ref.current = n;
     setState(n);
-    persist(n);
+    persist();
     effects.forEach((e) => e());
-  }, [toast]);
+  }, [toast, persist]);
 
   const replace = useCallback((n: State) => {
     ref.current = n;
     setState(n);
-    persist(n);
-  }, []);
+    persist();
+  }, [persist]);
 
-  // load once on the client
+  // load this user's state from Neon (migrating any pre-account browser data once)
   useEffect(() => {
-    let loaded: State;
-    try {
-      const raw = localStorage.getItem(KEY);
-      loaded = raw ? { ...DEF(), ...JSON.parse(raw) } : DEF();
-    } catch {
-      loaded = DEF();
-    }
-    loaded.ui = { ...DEF().ui, ...loaded.ui };
-    ref.current = loaded;
-    setState(loaded);
-    act((s, fx) => checkTrophies(s, fx));
-  }, [act]);
+    let cancelled = false;
+    (async () => {
+      try {
+        let loaded = await fetchState();
+        let migrated = false;
+        if (!loaded) {
+          try {
+            const raw = localStorage.getItem(LEGACY_KEY);
+            if (raw) { loaded = JSON.parse(raw); migrated = true; }
+          } catch { /* ignore unreadable legacy data */ }
+        }
+        if (cancelled) return;
+        const s: State = { ...DEF(), ...(loaded ?? {}) };
+        s.ui = { ...DEF().ui, ...s.ui };
+        checkTrophies(s, { toast: () => {}, confetti: () => {} });
+        ref.current = s;
+        setState(s);
+        if (!loaded || migrated) { persist(); if (migrated) toast('Imported your saved progress into your account', true); }
+      } catch {
+        if (!cancelled) setLoadError(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [persist, toast]);
+
+  // flush pending changes when the tab is hidden or closed
+  useEffect(() => {
+    const h = () => { if (document.visibilityState === 'hidden') flush(); };
+    document.addEventListener('visibilitychange', h);
+    window.addEventListener('pagehide', flush);
+    return () => { document.removeEventListener('visibilitychange', h); window.removeEventListener('pagehide', flush); };
+  }, [flush]);
 
   // focus timer heartbeat
   const timerOn = !!state?.timer;
@@ -106,9 +162,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
   const closeForm = useCallback(() => setModal(null), []);
 
-  if (!state) return null;
+  if (loadError) {
+    return (
+      <div className="auth"><div className="card auth-card">
+        <h1>Couldn&apos;t load your data</h1>
+        <p className="muted">The database didn&apos;t respond. Check your connection and Neon settings, then retry.</p>
+        <button className="btn" onClick={() => location.reload()}>Retry</button>
+      </div></div>
+    );
+  }
+  if (!state) return <div className="auth"><div className="muted">Loading your world…</div></div>;
   return (
-    <Ctx.Provider value={{ s: state, now, act, replace, openForm, closeForm, modal, toasts, toast }}>
+    <Ctx.Provider value={{ s: state, user, sync, now, act, replace, openForm, closeForm, modal, toasts, toast }}>
       {children}
     </Ctx.Provider>
   );

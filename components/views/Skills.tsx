@@ -1,19 +1,15 @@
 'use client';
-import { SKILL_CATS, TITLES, award, skillLvl, skillMin, skillMinFor, titleIdx } from '@/lib/engine';
+import { addSkill, startFocus } from '@/lib/quick';
+import { useRouter } from 'next/navigation';
+import { TITLES, award, skillLvl, skillMin, skillMinFor, titleIdx } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { addDays, hm, today, uid } from '@/lib/util';
 import { Bar, Empty } from '../ui';
 
 export default function Skills() {
   const { s, act, openForm } = useStore();
+  const router = useRouter();
   const wk = addDays(today(), -6);
-
-  const addSkill = () =>
-    openForm('New skill', [
-      { k: 'name', l: 'Skill', ph: 'Python, Spanish, Public speaking…' },
-      { k: 'icon', l: 'Emoji', v: '🧠' },
-      { k: 'cat', l: 'Category', t: 'select', o: SKILL_CATS.map((c) => [c, c]) },
-    ], (v) => act((x) => { x.skills.push({ id: uid(), name: v.name.trim(), icon: v.icon || '🧠', cat: v.cat }); }), { btn: 'Add skill' });
 
   const practice = (id: string, name: string) =>
     openForm('Log practice: ' + name, [
@@ -30,7 +26,7 @@ export default function Skills() {
 
   return (
     <>
-      <h2 className="pg">Skill tree <button className="btn" onClick={addSkill}>+ New skill</button></h2>
+      <h2 className="pg">Skill tree <button className="btn" onClick={() => addSkill({ act, openForm })}>+ New skill</button></h2>
       <div className="grid g3">
         {s.skills.map((k) => {
           const m = skillMin(s, k.id), l = skillLvl(m), a = skillMinFor(l), b = skillMinFor(l + 1);
@@ -46,7 +42,7 @@ export default function Skills() {
               <div className="small muted">{hm(m)} total · {hm(w)} this week · next level at {hm(b)}</div>
               <div className="row" style={{ marginTop: 10 }}>
                 <button className="btn sm" onClick={() => practice(k.id, k.name)}>Log practice</button>
-                <button className="btn ghost sm" onClick={() => act((x) => { x.ui.tab = 'time'; x.timer = { start: Date.now(), min: 25, label: k.name, skillId: k.id }; })}>⏱ Timer</button>
+                <button className="btn ghost sm" onClick={() => { startFocus({ act }, 25, k.name, k.id); router.push('/time'); }}>⏱ Timer</button>
                 <span className="grow" />
                 <button className="btn danger" onClick={() => confirm('Delete this skill? Logged time stays in your focus history.') && act((x) => { x.skills = x.skills.filter((y) => y.id !== k.id); })}>✕</button>
               </div>

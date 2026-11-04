@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { AREAS, AREA_KEYS, areaLvl, fmt, monthTx, skillMin, sumTx, totalFocus } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { addDays, hm, monthOf, today } from '@/lib/util';
@@ -6,7 +7,7 @@ import { HabitRow, TaskRow } from '../Rows';
 import { AreaDot, Bar, Empty, Radar } from '../ui';
 
 export default function Home() {
-  const { s, act } = useStore();
+  const { s } = useStore();
   const t = today(), m = monthOf(t);
   const inc = sumTx(monthTx(s, m, 'income')), exp = sumTx(monthTx(s, m, 'expense'));
   const focusToday = s.focus.filter((f) => f.date === t).reduce((a, f) => a + f.min, 0);
@@ -37,7 +38,7 @@ export default function Home() {
           {s.habits.length ? s.habits.map((h) => <HabitRow key={h.id} h={h} />) : <Empty>No habits yet — add some in Quests.</Empty>}
           {openTasks.map((x) => <TaskRow key={x.id} x={x} />)}
           <div className="row end" style={{ marginTop: 10 }}>
-            <button className="btn ghost sm" onClick={() => act((x) => { x.ui.tab = 'quests'; })}>Manage quests →</button>
+            <Link className="btn ghost sm" href="/quests">Manage quests →</Link>
           </div>
         </div>
         <div className="card">
