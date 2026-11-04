@@ -1,10 +1,11 @@
 'use client';
-import { addTx, goalForm } from '@/lib/quick';
+import { addTx, allocForm, assignForm, goalForm } from '@/lib/quick';
+import { computeBudget } from '@/lib/budget';
 import { formatMoney } from '@/lib/fx-rates';
 import FxCard, { useLocal } from '../FxCard';
 import { duration, monthYear, project } from '@/lib/finance';
 import GoalChart from '../GoalChart';
-import { CAT_GROUPS, EXP_CATS, award, catIcon, fmt, monthTx, sumTx } from '@/lib/engine';
+import { award, fmt, monthTx, sumTx } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { addMonths, monthName, monthOf, today, uid } from '@/lib/util';
 import { Bar, Empty } from '../ui';
@@ -16,42 +17,27 @@ export default function Money() {
   const m = s.ui.month, cur = s.cur, f = (n: number) => fmt(cur, n);
   const tx = monthTx(s, m).sort((a, b) => (a.date < b.date ? 1 : -1));
   const inc = sumTx(monthTx(s, m, 'income')), exp = sumTx(monthTx(s, m, 'expense')), net = inc - exp;
-  const bk = Object.keys(s.budget);
-  const totB = bk.reduce((a, k) => a + s.budget[k], 0);
   const expTx = monthTx(s, m, 'expense');
-  const spB = bk.reduce((a, k) => a + sumTx(expTx.filter((t) => t.cat === k)), 0);
   const isNow = m === monthOf(today());
   const dim = new Date(+m.slice(0, 4), +m.slice(5), 0).getDate();
   const left = Math.max(1, dim - new Date().getDate() + 1);
-  const cats: Record<string, number> = {};
-  expTx.forEach((t) => { cats[t.cat] = (cats[t.cat] || 0) + t.amt; });
-  // group categories: budgeted ones under their group, spending without a limit under "Not budgeted yet"
-  const groupOf = (c: string) => CAT_GROUPS.find((g) => g.cats.includes(c))?.id ?? 'other';
-  const budgetGroups = [...CAT_GROUPS.map((g) => ({ id: g.id, title: g.title, hint: g.hint })), { id: 'other', title: 'Other', hint: 'Your own categories' }]
-    .map((g) => {
-      const keys = bk.filter((k) => groupOf(k) === g.id);
-      return { ...g, keys, limit: keys.reduce((a, k) => a + s.budget[k], 0), spent: keys.reduce((a, k) => a + (cats[k] || 0), 0) };
-    })
-    .filter((g) => g.keys.length);
-  const unbudgeted = Object.keys(cats).filter((k) => !(k in s.budget)).sort((a, b) => cats[b] - cats[a]);
-  const unbudgetedSpend = unbudgeted.reduce((a, k) => a + cats[k], 0);
-  const budgetLeft = totB - spB;
+  // the income split: each bucket's share of this month's income, and how much of it is used
+  const bud = computeBudget(s, m);
+  const spendB = bud.buckets.filter((b) => b.kind === 'spend');
+  const spendAlloc = spendB.reduce((a, b) => a + b.allocated, 0), spendUsed = spendB.reduce((a, b) => a + b.used, 0);
   const statusColor = (p: number) => (p > 100 ? 'var(--bad)' : p > 80 ? 'var(--career)' : 'var(--good)');
+  const BUCKET_COLOR: Record<string, string> = { essentials: 'var(--time)', guilt: 'var(--vitality)', debt: 'var(--career)', savings: 'var(--skills)', invest: 'var(--wealth)' };
+  const basisText = bud.basis === 'logged' ? 'income logged this month' : bud.basis === 'expected' ? 'expected monthly income' : '';
   const ms = Array.from({ length: 6 }, (_, i) => addMonths(m, i - 5));
   const vals = ms.map((x) => [sumTx(monthTx(s, x, 'income')), sumTx(monthTx(s, x, 'expense'))]);
   const mx = Math.max(1, ...vals.flat());
   const go = (n: number) => act((x) => { x.ui.month = addMonths(x.ui.month, n); });
 
-  const setBudget = (cat = '') =>
-    openForm(cat ? `Budget for ${cat}` : 'Set a category budget', [
-      { k: 'cat', l: 'Category', dl: EXP_CATS, v: cat, ph: 'Pick one or type your own' },
-      { k: 'limit', l: 'Monthly limit', t: 'number', v: cat && s.budget[cat] ? s.budget[cat] : undefined },
-    ], (v) => act((x) => { x.budget[v.cat.trim()] = +v.limit; }), { btn: cat && s.budget[cat] ? 'Update budget' : 'Set budget' });
-
   const fundGoal = (id: string, name: string) =>
     openForm('Add to ' + name, [{ k: 'amt', l: 'Amount', t: 'number' }], (v) => act((x, fx) => {
       const g = x.goals.find((y) => y.id === id)!;
       g.saved += +v.amt;
+      (g.log ??= []).push({ date: today(), amt: +v.amt });
       award(x, fx, 20, 'wealth', 'Funded ' + g.name);
       if (g.saved >= g.target && !g.paid) {
         g.paid = true;
@@ -75,56 +61,61 @@ export default function Money() {
         <div className="card tile"><div className="l">Spent</div><div className="v">{f(exp)}</div>{local(exp) && <div className="s">≈ {local(exp)}</div>}</div>
         <div className="card tile"><div className="l">Net saved</div><div className="v" style={{ color: `var(--${net >= 0 ? 'good' : 'bad'})` }}>{f(net)}</div><div className="s">{inc ? Math.round((net / inc) * 100) + '% savings rate' : '—'}</div></div>
         <div className="card tile">
-          <div className="l">{isNow && totB ? 'Safe to spend / day' : 'Budget used'}</div>
-          <div className="v">{totB ? (isNow ? f(Math.max(0, (totB - spB) / left)) : Math.round((spB / totB) * 100) + '%') : '—'}</div>
-          <div className="s">{totB ? `${f(spB)} of ${f(totB)}${isNow && local(Math.max(0, (totB - spB) / left)) ? ` · ≈ ${local(Math.max(0, (totB - spB) / left))}/day` : ''}` : 'set budgets below'}</div>
+          <div className="l">{isNow && spendAlloc ? 'Safe to spend / day' : 'Spending used'}</div>
+          <div className="v">{spendAlloc ? (isNow ? f(Math.max(0, (spendAlloc - spendUsed) / left)) : Math.round((spendUsed / spendAlloc) * 100) + '%') : '—'}</div>
+          <div className="s">{spendAlloc ? `${f(spendUsed)} of ${f(spendAlloc)}${isNow && local(Math.max(0, (spendAlloc - spendUsed) / left)) ? ` · ≈ ${local(Math.max(0, (spendAlloc - spendUsed) / left))}/day` : ''}` : 'log income to see your budget'}</div>
         </div>
       </div>
       <div className="card">
-        <h3>Monthly budget by category <span className="sub">{monthName(m)}</span> <button className="btn sm" onClick={() => setBudget()}><Icon n="bx-plus" /> Set budget</button></h3>
-        {budgetGroups.length > 0 && (
+        <h3>Monthly budget <span className="sub">{monthName(m)}</span>
+          <button className="btn ghost sm" onClick={() => assignForm({ act, openForm, s })}>Assign category</button>
+          <button className="btn sm" onClick={() => allocForm({ act, openForm, s })}><Icon n="bx-slider-alt" /> Edit split</button>
+        </h3>
+        {bud.base > 0 ? (
           <div className="bsum">
-            <div className="row">
-              <b>{f(spB)}</b><span className="muted">spent of {f(totB)} budgeted</span>
-              <span className="grow" />
-              <span className={`small ${budgetLeft < 0 ? 'neg' : 'muted'}`}>{budgetLeft >= 0 ? `${f(budgetLeft)} left` : `${f(-budgetLeft)} over`}</span>
+            <div className="row"><b>{f(bud.base)}</b><span className="muted">{basisText}</span></div>
+            <div className="splitbar" role="img" aria-label={`Income split ${bud.buckets.map((b) => `${b.name} ${b.pct}%`).join(', ')}`}>
+              {bud.buckets.map((b) => <i key={b.id} title={`${b.name} ${b.pct}%`} style={{ width: `${b.pct}%`, background: BUCKET_COLOR[b.id] }} />)}
             </div>
-            <Bar p={totB ? (spB / totB) * 100 : 0} color={statusColor(totB ? (spB / totB) * 100 : 0)} />
+            <div className="small muted">{bud.buckets.map((b) => `${b.pct}%`).join(' / ')}{local(bud.base) ? ` · ≈ ${local(bud.base)} to split` : ''}</div>
           </div>
+        ) : (
+          <Empty>Log your income, or set an expected monthly income under Edit split, and LifeOS divides it for you: {bud.buckets.map((b) => `${b.pct}% ${b.name}`).join(', ')}.</Empty>
         )}
-        {budgetGroups.map((g) => (
-          <section className="bgroup" key={g.id}>
-            <header><span className="gt">{g.title}</span><span className="small muted">{g.hint}</span><span className="grow" /><span className="small muted">{f(g.spent)} of {f(g.limit)}</span></header>
-            {g.keys.map((k) => {
-              const sp = cats[k] || 0, lim = s.budget[k], p = (sp / lim) * 100, rest = lim - sp;
-              return (
-                <div className="brow" key={k}>
-                  <span className="bic"><Icon n={catIcon(k)} /></span>
-                  <div className="grow">
-                    <div className="row"><b className="grow">{k}</b><span className="small">{f(sp)} <span className="muted">/ {f(lim)}</span></span></div>
-                    <Bar p={p} color={statusColor(p)} />
-                    <div className={`small ${rest < 0 ? 'neg' : 'muted'}`} style={{ marginTop: 3 }}>{rest >= 0 ? `${f(rest)} left` : `${f(-rest)} over budget`}</div>
+        {bud.buckets.map((b) => {
+          const p = b.allocated ? (b.used / b.allocated) * 100 : 0;
+          const goalKind = b.id === 'invest' ? 'an investment' : 'a savings';
+          return (
+            <section className="bucket" key={b.id}>
+              <div className="brow">
+                <span className="bic" style={{ color: BUCKET_COLOR[b.id], background: `color-mix(in srgb, ${BUCKET_COLOR[b.id]} 16%, var(--panel2))` }}><Icon n={b.icon} /></span>
+                <div className="grow">
+                  <div className="row">
+                    <b>{b.name}</b><span className="pill">{b.pct}%</span><span className="grow" />
+                    <span className="small"><b>{f(b.used)}</b> <span className="muted">of {f(b.allocated)}</span></span>
                   </div>
-                  <button className="btn danger" onClick={() => setBudget(k)} aria-label={`Edit ${k} budget`}><Icon n="bx-edit-alt" /></button>
-                  <button className="btn danger" onClick={() => act((x) => { delete x.budget[k]; })} aria-label={`Remove ${k} budget`}><Icon n="bx-trash" /></button>
+                  <Bar p={p} color={b.kind === 'spend' ? statusColor(p) : BUCKET_COLOR[b.id]} />
+                  <div className="row small" style={{ marginTop: 3 }}>
+                    <span className="muted">{b.hint}</span><span className="grow" />
+                    {bud.base > 0 && (b.kind === 'spend'
+                      ? <span className={b.left < 0 ? 'neg' : 'muted'}>{b.left >= 0 ? `${f(b.left)} left` : `${f(-b.left)} over`}</span>
+                      : <span className="muted">{b.left <= 0 ? 'Fully set aside' : `${f(b.left)} still to set aside`}</span>)}
+                  </div>
+                  {local(b.allocated) && b.allocated > 0 && <div className="small muted">≈ {local(b.allocated)} for this bucket</div>}
+                  {b.items.length > 0 && (
+                    <div className="sugs ro">{b.items.map((i) => <span key={i.label} className="chipro">{i.label} <b>{f(i.amt)}</b></span>)}</div>
+                  )}
+                  {b.kind === 'save' && !s.goals.some((g) => (g.kind === 'investment') === (b.id === 'invest')) && (
+                    <div className="small muted" style={{ marginTop: 4 }}>Create {goalKind} goal below, then use Add funds to count money toward this bucket.</div>
+                  )}
                 </div>
-              );
-            })}
-          </section>
-        ))}
-        {unbudgeted.length > 0 && (
-          <section className="bgroup">
-            <header><span className="gt">Not budgeted yet</span><span className="small muted">Spending with no limit</span><span className="grow" /><span className="small muted">{f(unbudgetedSpend)} spent</span></header>
-            {unbudgeted.map((k) => (
-              <div className="brow" key={k}>
-                <span className="bic"><Icon n={catIcon(k)} /></span>
-                <div className="grow row"><b className="grow">{k}</b><span className="small">{f(cats[k])}</span></div>
-                <button className="btn ghost sm" onClick={() => setBudget(k)}>Set limit</button>
               </div>
-            ))}
-          </section>
+            </section>
+          );
+        })}
+        {Object.keys(s.catMap).length > 0 && (
+          <div className="small muted bmap">Custom assignments: {Object.entries(s.catMap).map(([c, id]) => `${c} → ${bud.buckets.find((b) => b.id === id)?.name}`).join(', ')}</div>
         )}
-        {!budgetGroups.length && !unbudgeted.length && <Empty>No budget yet. Set a monthly limit for a category like Food or Transport and track it here.</Empty>}
       </div>
       <div className="grid g2" style={{ marginTop: 16 }}>
         <div className="card">

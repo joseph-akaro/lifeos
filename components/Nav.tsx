@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { NAV } from '@/lib/nav';
-import { monthTx, sumTx } from '@/lib/engine';
+import { computeBudget } from '@/lib/budget';
 import { authClient } from '@/lib/auth/client';
 import { useStore } from '@/lib/store';
 import { mondayOf, monthOf, pad, today } from '@/lib/util';
@@ -28,8 +28,7 @@ export function useBadges(): Record<string, Badge> {
       const left = Math.max(0, Math.ceil((s.timer.start + s.timer.min * 60000 - now) / 1000));
       b['/time'] = { text: `${pad(Math.floor(left / 60))}:${pad(left % 60)}`, tone: 'live' };
     }
-    const ex = monthTx(s, monthOf(t), 'expense');
-    const over = Object.keys(s.budget).filter((k) => sumTx(ex.filter((x) => x.cat === k)) > s.budget[k]).length;
+    const over = computeBudget(s, monthOf(t)).buckets.filter((x) => x.over).length;
     if (over) b['/money'] = { text: `${over} over`, tone: 'bad' };
     if (reviewDue(s)) b['/career'] = { text: 'review', tone: 'accent' };
     const buy = s.rewards.filter((r) => s.gold >= r.cost).length;

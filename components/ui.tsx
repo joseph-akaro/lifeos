@@ -171,8 +171,9 @@ function ModalForm({ modal }: { modal: ModalSpec }) {
   const [vals, setVals] = useState<Record<string, string>>(() =>
     Object.fromEntries(modal.fields.map((f) => [f.k, String(f.v ?? (f.t === 'select' || f.t === 'icons' ? f.o?.[0]?.[0] : '') ?? '')])));
   const [errs, setErrs] = useState<Record<string, string>>({});
+  const [formErr, setFormErr] = useState('');
   const root = useRef<HTMLFormElement>(null);
-  const set = (k: string, v: string) => { setVals((x) => ({ ...x, [k]: v })); setErrs((x) => { const n = { ...x }; delete n[k]; return n; }); };
+  const set = (k: string, v: string) => { setFormErr(''); setVals((x) => ({ ...x, [k]: v })); setErrs((x) => { const n = { ...x }; delete n[k]; return n; }); };
 
   const visible = modal.fields.filter((f) => (!f.showIf || vals[f.showIf[0]] === f.showIf[1]) && (!f.hideIf || vals[f.hideIf[0]] !== f.hideIf[1]));
 
@@ -190,8 +191,11 @@ function ModalForm({ modal }: { modal: ModalSpec }) {
       requestAnimationFrame(() => root.current?.querySelector<HTMLElement>(`[name="${first?.k}"],[data-k="${first?.k}"]`)?.focus());
       return;
     }
+    const clean = Object.fromEntries(visible.map((f) => [f.k, vals[f.k] ?? '']));
+    const msg = modal.validate?.(clean);
+    if (msg) { setFormErr(msg); return; }
     closeForm();
-    modal.onSubmit(Object.fromEntries(visible.map((f) => [f.k, vals[f.k] ?? ''])));
+    modal.onSubmit(clean);
   };
 
   const control = (f: Field, i: number) => {
@@ -237,6 +241,7 @@ function ModalForm({ modal }: { modal: ModalSpec }) {
         </div>
       ))}
       {modal.extra}
+      {formErr && <div className="formerr" role="alert"><Icon n="bx-error-circle" /> {formErr}</div>}
       <div className="row end">
         <button type="button" className="btn ghost" onClick={closeForm}>Cancel</button>
         <button className="btn">{modal.btn}</button>

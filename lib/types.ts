@@ -23,6 +23,8 @@ export interface Goal {
   monthly?: number;
   /** Optional target date, YYYY-MM-DD. */
   deadline?: string;
+  /** Money added to this goal, dated, so the monthly budget can see what was set aside. */
+  log?: { date: string; amt: number }[];
 }
 export interface Skill { id: string; name: string; icon: string; cat: string }
 export interface Step { id: string; text: string; done: boolean }
@@ -46,6 +48,10 @@ export interface State {
   /** Country you are based in right now (ISO code), and where you have been. */
   country: string;
   stays: Stay[];
+  /** How income is split into budget buckets (percent per bucket, summing to 100). */
+  alloc: { basis: 'logged' | 'expected'; expected: number; pct: Record<'essentials' | 'guilt' | 'debt' | 'savings' | 'invest', number> };
+  /** Expense category -> bucket overrides. */
+  catMap: Record<string, string>;
   timer: Timer | null;
   focus: Focus[];
   blocks: Block[];

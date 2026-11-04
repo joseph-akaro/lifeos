@@ -1,6 +1,7 @@
 import type { Area, Goal } from './types';
 import type { Store } from './store';
 import { AREA_OPTS, DIFF, EXP_CATS, INC_CATS, SKILL_CATS, award } from './engine';
+import { BUCKETS, SPEND_BUCKETS, type BucketId } from './budget';
 import { COUNTRIES, countryOf } from './countries';
 import { SKILL_ICONS } from './icons';
 import { monthOf, today, uid } from './util';
@@ -118,3 +119,28 @@ export const goalForm = ({ act, openForm }: Ctx, g?: Goal) =>
       if (cur.saved >= cur.target) cur.paid = true;
     } else x.goals.push({ id: uid(), paid: false, ...fields });
   }), { btn: g ? 'Save changes' : 'Create goal' });
+
+/** Edit how income is split across the five budget buckets. Percentages must add up to 100. */
+export const allocForm = ({ act, openForm, s }: Pick<Store, 'act' | 'openForm' | 's'>) =>
+  openForm('Split your income', [
+    ...BUCKETS.map((b) => ({ k: b.id, l: `${b.name} (%)`, t: 'number' as const, v: s.alloc.pct[b.id], hint: b.hint })),
+    { k: 'basis', l: 'Calculate from', t: 'select', o: [['logged', 'Income I log each month'], ['expected', 'A fixed monthly income']], v: s.alloc.basis },
+    { k: 'expected', l: 'Expected monthly income (USD)', t: 'number', v: s.alloc.expected || undefined, showIf: ['basis', 'expected'], hint: 'Use this if your income arrives late or in lumps.' },
+  ], (v) => act((x) => {
+    for (const b of BUCKETS) x.alloc.pct[b.id] = +v[b.id];
+    x.alloc.basis = v.basis as 'logged' | 'expected';
+    x.alloc.expected = +v.expected || 0;
+  }), {
+    btn: 'Save split',
+    validate: (v) => {
+      const total = BUCKETS.reduce((a, b) => a + (+v[b.id] || 0), 0);
+      return Math.abs(total - 100) < 0.001 ? null : `These add up to ${Math.round(total * 100) / 100}%. They need to total 100%.`;
+    },
+  });
+
+/** Choose which bucket an expense category counts against. */
+export const assignForm = ({ act, openForm, s }: Pick<Store, 'act' | 'openForm' | 's'>, cat = '') =>
+  openForm('Which bucket does it count against?', [
+    { k: 'cat', l: 'Expense category', dl: EXP_CATS, v: cat, ph: 'Pick one or type your own' },
+    { k: 'bucket', l: 'Bucket', t: 'select', o: SPEND_BUCKETS.map((b) => [b.id, b.name] as [string, string]), v: (cat && (s.catMap[cat] ?? '')) || 'essentials' },
+  ], (v) => act((x) => { x.catMap[v.cat.trim()] = v.bucket as BucketId; }), { btn: 'Assign' });
