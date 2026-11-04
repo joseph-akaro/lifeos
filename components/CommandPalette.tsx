@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { skillIcon } from '@/lib/icons';
 import { NAV } from '@/lib/nav';
 import { addHabit, addSkill, addTask, addTx, addWin, startFocus, toggleHabit } from '@/lib/quick';
 import { useStore } from '@/lib/store';
 import { today } from '@/lib/util';
 import { authClient } from '@/lib/auth/client';
 import { reviewDue } from './Nav';
+import { Icon } from './Icon';
 
 interface Item { id: string; icon: string; label: string; hint?: string; group: string; kw?: string; run: () => void }
 
@@ -32,23 +34,23 @@ export default function CommandPalette({ open, onClose, toggleNav }: { open: boo
       id: 'go' + n.href, icon: n.icon, label: n.label, hint: `g ${n.key}`, group: 'Go to', kw: 'open page navigate', run: go(n.href),
     }));
     const actions: Item[] = [
-      { id: 'a-habit', icon: '🔁', label: 'Add habit', group: 'Actions', kw: 'new create daily', run: () => addHabit(ctx) },
-      { id: 'a-task', icon: '⚔️', label: 'Add quest', group: 'Actions', kw: 'new create task todo', run: () => addTask(ctx) },
-      { id: 'a-tx', icon: '💸', label: 'Add transaction', group: 'Actions', kw: 'expense income money spend log', run: () => { router.push('/money'); addTx(ctx); } },
-      { id: 'a-skill', icon: '🧠', label: 'Add skill', group: 'Actions', kw: 'new learn', run: () => { router.push('/skills'); addSkill(ctx); } },
-      { id: 'a-win', icon: '🏅', label: 'Log a career win', group: 'Actions', kw: 'achievement', run: () => { router.push('/career'); addWin(ctx); } },
+      { id: 'a-habit', icon: 'bx-repeat', label: 'Add habit', group: 'Actions', kw: 'new create daily', run: () => addHabit(ctx) },
+      { id: 'a-task', icon: 'bx-task', label: 'Add quest', group: 'Actions', kw: 'new create task todo', run: () => addTask(ctx) },
+      { id: 'a-tx', icon: 'bx-wallet', label: 'Add transaction', group: 'Actions', kw: 'expense income money spend log', run: () => { router.push('/money'); addTx(ctx); } },
+      { id: 'a-skill', icon: 'bx-brain', label: 'Add skill', group: 'Actions', kw: 'new learn', run: () => { router.push('/skills'); addSkill(ctx); } },
+      { id: 'a-win', icon: 'bx-trophy', label: 'Log a career win', group: 'Actions', kw: 'achievement', run: () => { router.push('/career'); addWin(ctx); } },
       s.timer
-        ? { id: 'a-timer', icon: '⏱️', label: 'Open focus timer', group: 'Actions', kw: 'stop pomodoro', run: go('/time') }
-        : { id: 'a-focus', icon: '🎯', label: 'Start 25-minute focus', group: 'Actions', kw: 'timer pomodoro deep work', run: () => { startFocus(ctx); router.push('/time'); } },
-      { id: 'a-nav', icon: '↔️', label: 'Collapse / expand menu', group: 'Actions', kw: 'sidebar', run: toggleNav },
-      { id: 'a-out', icon: '⎋', label: 'Sign out', group: 'Actions', kw: 'logout', run: async () => { await authClient.signOut(); router.replace('/auth/sign-in'); router.refresh(); } },
+        ? { id: 'a-timer', icon: 'bx-timer', label: 'Open focus timer', group: 'Actions', kw: 'stop pomodoro', run: go('/time') }
+        : { id: 'a-focus', icon: 'bx-target-lock', label: 'Start 25-minute focus', group: 'Actions', kw: 'timer pomodoro deep work', run: () => { startFocus(ctx); router.push('/time'); } },
+      { id: 'a-nav', icon: 'bx-dock-left', label: 'Collapse / expand menu', group: 'Actions', kw: 'sidebar', run: toggleNav },
+      { id: 'a-out', icon: 'bx-log-out', label: 'Sign out', group: 'Actions', kw: 'logout', run: async () => { await authClient.signOut(); router.replace('/auth/sign-in'); router.refresh(); } },
     ];
     const habits: Item[] = s.habits.map((h) => {
       const done = h.done.includes(t);
-      return { id: 'h' + h.id, icon: done ? '✅' : '☐', label: `${done ? 'Undo' : 'Complete'}: ${h.name}`, group: 'Habits', kw: 'habit check', run: () => toggleHabit(act, h.id) };
+      return { id: 'h' + h.id, icon: done ? 'bxs-check-circle' : 'bx-circle', label: `${done ? 'Undo' : 'Complete'}: ${h.name}`, group: 'Habits', kw: 'habit check', run: () => toggleHabit(act, h.id) };
     });
     const skills: Item[] = s.skills.map((k) => ({
-      id: 'k' + k.id, icon: k.icon, label: `Practice ${k.name}`, hint: '25m timer', group: 'Skills', kw: 'skill learn timer',
+      id: 'k' + k.id, icon: skillIcon(k.icon), label: `Practice ${k.name}`, hint: '25m timer', group: 'Skills', kw: 'skill learn timer',
       run: () => { startFocus({ act }, 25, k.name, k.id); router.push('/time'); },
     }));
 
@@ -56,7 +58,7 @@ export default function CommandPalette({ open, onClose, toggleNav }: { open: boo
     const sug: Item[] = [];
     if (s.timer) sug.push({ ...actions.find((a) => a.id === 'a-timer')!, group: 'Suggested', label: 'Focus session running — open timer' });
     undone.slice(0, 3).forEach((h) => sug.push({ ...habits.find((x) => x.id === 'h' + h.id)!, group: 'Suggested' }));
-    if (reviewDue(s)) sug.push({ id: 's-rev', icon: '🔭', label: 'Do your weekly review (+40 XP)', group: 'Suggested', run: go('/career') });
+    if (reviewDue(s)) sug.push({ id: 's-rev', icon: 'bx-calendar-check', label: 'Do your weekly review (+40 XP)', group: 'Suggested', run: go('/career') });
     if (!s.tx.some((x) => x.date === t)) sug.push({ ...actions.find((a) => a.id === 'a-tx')!, group: 'Suggested', label: "Log today's spending" });
     if (!s.timer && sug.length < 5) sug.push({ ...actions.find((a) => a.id === 'a-focus')!, group: 'Suggested' });
     return { suggested: sug.slice(0, 5), all: [...pages, ...actions, ...habits, ...skills] };
@@ -104,7 +106,7 @@ export default function CommandPalette({ open, onClose, toggleNav }: { open: boo
               <div key={i.group + i.id}>
                 {head}
                 <div className={`pal-item ${idx === sel ? 'sel' : ''}`} onMouseMove={() => setSel(idx)} onClick={() => run(i)}>
-                  <span className="ic">{i.icon}</span><span className="grow">{i.label}</span>{i.hint && <kbd>{i.hint}</kbd>}
+                  <span className="ic"><Icon n={i.icon} /></span><span className="grow">{i.label}</span>{i.hint && <kbd>{i.hint}</kbd>}
                 </div>
               </div>
             );

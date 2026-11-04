@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store';
 import { addDays, hm, monthOf, today } from '@/lib/util';
 import { HabitRow, TaskRow } from '../Rows';
 import { AreaDot, Bar, Empty, Radar } from '../ui';
+import { Icon } from '../Icon';
 
 export default function Home() {
   const { s } = useStore();
@@ -38,7 +39,7 @@ export default function Home() {
           {s.habits.length ? s.habits.map((h) => <HabitRow key={h.id} h={h} />) : <Empty>No habits yet — add some in Quests.</Empty>}
           {openTasks.map((x) => <TaskRow key={x.id} x={x} />)}
           <div className="row end" style={{ marginTop: 10 }}>
-            <Link className="btn ghost sm" href="/quests">Manage quests →</Link>
+            <Link className="btn ghost sm" href="/quests">Manage quests <Icon n="bx-right-arrow-alt" /></Link>
           </div>
         </div>
         <div className="card">
@@ -47,7 +48,7 @@ export default function Home() {
           <div className="areas">
             {AREA_KEYS.map((k) => (
               <div className="a" key={k}>
-                <span>{AREAS[k].i} {AREAS[k].n}</span>
+                <span className="alabel"><Icon n={AREAS[k].i} /> {AREAS[k].n}</span>
                 <Bar p={((s.areaXp[k] || 0) / maxA) * 100} color={AREAS[k].c} />
                 <span className="small muted">Lv {areaLvl(s, k)}</span>
               </div>

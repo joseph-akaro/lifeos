@@ -2,16 +2,16 @@ import type { Area, Fx, State, Tx } from './types';
 import { addDays, monthOf, today, uid } from './util';
 
 export const AREAS: Record<Area, { n: string; i: string; c: string }> = {
-  time: { n: 'Time', i: '⏱️', c: 'var(--time)' },
-  wealth: { n: 'Wealth', i: '💰', c: 'var(--wealth)' },
-  career: { n: 'Career', i: '💼', c: 'var(--career)' },
-  skills: { n: 'Skills', i: '🧠', c: 'var(--skills)' },
-  vitality: { n: 'Vitality', i: '💪', c: 'var(--vitality)' },
+  time: { n: 'Time', i: 'bx-time-five', c: 'var(--time)' },
+  wealth: { n: 'Wealth', i: 'bx-wallet', c: 'var(--wealth)' },
+  career: { n: 'Career', i: 'bx-briefcase', c: 'var(--career)' },
+  skills: { n: 'Skills', i: 'bx-brain', c: 'var(--skills)' },
+  vitality: { n: 'Vitality', i: 'bx-dumbbell', c: 'var(--vitality)' },
 };
 export const AREA_KEYS = Object.keys(AREAS) as Area[];
-export const AREA_OPTS: [string, string][] = AREA_KEYS.map((k) => [k, AREAS[k].i + ' ' + AREAS[k].n]);
+export const AREA_OPTS: [string, string][] = AREA_KEYS.map((k) => [k, AREAS[k].n]);
 export const TITLES = ['Rookie', 'Apprentice', 'Adventurer', 'Challenger', 'Veteran', 'Expert', 'Master', 'Champion', 'Legend', 'Mythic'];
-export const AVATARS = ['🌱', '🪴', '🌿', '🌳', '⚔️', '🛡️', '🏹', '👑', '🐉', '🌌'];
+export const AVATARS = ['bx-leaf', 'bx-bulb', 'bx-compass', 'bx-rocket', 'bx-shield-quarter', 'bx-medal', 'bx-award', 'bx-crown', 'bx-diamond', 'bx-planet'];
 export const EXP_CATS = ['Food', 'Transport', 'Housing', 'Bills', 'Health', 'Fun', 'Learning', 'Shopping', 'Other'];
 export const INC_CATS = ['Salary', 'Freelance', 'Business', 'Gift', 'Other'];
 export const SKILL_CATS = ['Tech', 'Creative', 'Business', 'Language', 'Body', 'Other'];
@@ -29,9 +29,9 @@ export const DEF = (): State => ({
   tasks: [], timer: null, focus: [], blocks: [], tx: [], txXp: {}, budget: {}, goals: [], skills: [],
   objectives: [], wins: [], reviews: [], trophies: {},
   rewards: [
-    { id: uid(), name: '☕ Coffee break', cost: 40 },
-    { id: uid(), name: '🎮 1h guilt-free gaming', cost: 120 },
-    { id: uid(), name: '🍕 Treat meal', cost: 300 },
+    { id: uid(), name: 'Coffee break', cost: 40 },
+    { id: uid(), name: '1h guilt-free gaming', cost: 120 },
+    { id: uid(), name: 'Treat meal', cost: 300 },
   ],
   ui: { month: monthOf(today()), tf: 'open' },
 });
@@ -69,37 +69,37 @@ export const fmt = (cur: string, n: number) =>
 
 /* ---- trophies ---- */
 export const TROPHIES: { id: string; i: string; n: string; d: string; t: (s: State) => boolean }[] = [
-  { id: 'first', i: '🌟', n: 'First Steps', d: 'Earn your first XP', t: (s) => s.xp > 0 },
-  { id: 'lv5', i: '⭐', n: 'Level 5', d: 'Reach level 5', t: (s) => lvl(s.xp) >= 5 },
-  { id: 'lv10', i: '🌠', n: 'Level 10', d: 'Reach level 10', t: (s) => lvl(s.xp) >= 10 },
-  { id: 'st7', i: '🔥', n: 'Week Warrior', d: '7-day XP streak', t: (s) => gstreak(s) >= 7 },
-  { id: 'st30', i: '☄️', n: 'Unstoppable', d: '30-day XP streak', t: (s) => gstreak(s) >= 30 },
-  { id: 'hab21', i: '🧬', n: 'Habit Forged', d: '21-day streak on any habit', t: (s) => s.habits.some((h) => habitStreak(h.done) >= 21) },
-  { id: 'q25', i: '⚔️', n: 'Quest Slayer', d: 'Complete 25 quests', t: (s) => s.tasks.filter((t) => t.done).length >= 25 },
-  { id: 'f10', i: '🎯', n: 'Deep Diver', d: '10 hours of focus', t: (s) => totalFocus(s) >= 600 },
-  { id: 'f50', i: '🧘', n: 'Flow State', d: '50 hours of focus', t: (s) => totalFocus(s) >= 3000 },
-  { id: 'tx20', i: '📒', n: 'Bookkeeper', d: 'Log 20 transactions', t: (s) => s.tx.length >= 20 },
-  { id: 'goal', i: '🏦', n: 'Goal Getter', d: 'Fully fund a savings goal', t: (s) => s.goals.some((g) => g.paid) },
+  { id: 'first', i: 'bx-star', n: 'First Steps', d: 'Earn your first XP', t: (s) => s.xp > 0 },
+  { id: 'lv5', i: 'bx-medal', n: 'Level 5', d: 'Reach level 5', t: (s) => lvl(s.xp) >= 5 },
+  { id: 'lv10', i: 'bx-award', n: 'Level 10', d: 'Reach level 10', t: (s) => lvl(s.xp) >= 10 },
+  { id: 'st7', i: 'bxs-hot', n: 'Week Warrior', d: '7-day XP streak', t: (s) => gstreak(s) >= 7 },
+  { id: 'st30', i: 'bx-meteor', n: 'Unstoppable', d: '30-day XP streak', t: (s) => gstreak(s) >= 30 },
+  { id: 'hab21', i: 'bx-infinite', n: 'Habit Forged', d: '21-day streak on any habit', t: (s) => s.habits.some((h) => habitStreak(h.done) >= 21) },
+  { id: 'q25', i: 'bx-task', n: 'Quest Slayer', d: 'Complete 25 quests', t: (s) => s.tasks.filter((t) => t.done).length >= 25 },
+  { id: 'f10', i: 'bx-target-lock', n: 'Deep Diver', d: '10 hours of focus', t: (s) => totalFocus(s) >= 600 },
+  { id: 'f50', i: 'bxs-yin-yang', n: 'Flow State', d: '50 hours of focus', t: (s) => totalFocus(s) >= 3000 },
+  { id: 'tx20', i: 'bx-book-content', n: 'Bookkeeper', d: 'Log 20 transactions', t: (s) => s.tx.length >= 20 },
+  { id: 'goal', i: 'bxs-bank', n: 'Goal Getter', d: 'Fully fund a savings goal', t: (s) => s.goals.some((g) => g.paid) },
   {
-    id: 'bud', i: '🛡️', n: 'Budget Boss', d: 'Month with 5+ expenses and all budgets respected',
+    id: 'bud', i: 'bx-shield-alt-2', n: 'Budget Boss', d: 'Month with 5+ expenses and all budgets respected',
     t: (s) => {
       const ex = monthTx(s, s.ui.month, 'expense');
       const ks = Object.keys(s.budget);
       return ex.length >= 5 && ks.length > 0 && ks.every((k) => sumTx(ex.filter((t) => t.cat === k)) <= s.budget[k]);
     },
   },
-  { id: 'sk5', i: '🛠️', n: 'Specialist', d: 'Get any skill to level 5', t: (s) => s.skills.some((k) => skillLvl(skillMin(s, k.id)) >= 5) },
-  { id: 'sk3', i: '🎓', n: 'Polymath', d: 'Three skills at level 3+', t: (s) => s.skills.filter((k) => skillLvl(skillMin(s, k.id)) >= 3).length >= 3 },
-  { id: 'obj', i: '🚀', n: 'Mission Complete', d: 'Finish a career objective', t: (s) => s.objectives.some((o) => o.done) },
-  { id: 'win10', i: '🏅', n: 'Win Collector', d: 'Log 10 career wins', t: (s) => s.wins.length >= 10 },
-  { id: 'rev4', i: '🔭', n: 'Reflective', d: 'Complete 4 weekly reviews', t: (s) => s.reviews.length >= 4 },
+  { id: 'sk5', i: 'bx-wrench', n: 'Specialist', d: 'Get any skill to level 5', t: (s) => s.skills.some((k) => skillLvl(skillMin(s, k.id)) >= 5) },
+  { id: 'sk3', i: 'bxs-graduation', n: 'Polymath', d: 'Three skills at level 3+', t: (s) => s.skills.filter((k) => skillLvl(skillMin(s, k.id)) >= 3).length >= 3 },
+  { id: 'obj', i: 'bx-rocket', n: 'Mission Complete', d: 'Finish a career objective', t: (s) => s.objectives.some((o) => o.done) },
+  { id: 'win10', i: 'bx-trophy', n: 'Win Collector', d: 'Log 10 career wins', t: (s) => s.wins.length >= 10 },
+  { id: 'rev4', i: 'bx-calendar-check', n: 'Reflective', d: 'Complete 4 weekly reviews', t: (s) => s.reviews.length >= 4 },
 ];
 
 export function checkTrophies(s: State, fx: Fx) {
   for (const t of TROPHIES) {
     if (!s.trophies[t.id] && t.t(s)) {
       s.trophies[t.id] = today();
-      fx.toast(`🏆 Trophy unlocked: ${t.n}`, true);
+      fx.toast(`Trophy unlocked: ${t.n}`, true);
       fx.confetti();
       award(s, fx, 50, 'career', 'Trophy: ' + t.n);
     }
@@ -122,7 +122,7 @@ export function award(s: State, fx: Fx, amt: number, area: Area, why: string) {
   const after = lvl(s.xp);
   if (after > before) {
     fx.confetti();
-    fx.toast(`🎉 LEVEL UP! You are now level ${after}`, true);
+    fx.toast(`Level up. You're now level ${after}`, true);
   }
   checkTrophies(s, fx);
 }

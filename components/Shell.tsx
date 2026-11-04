@@ -7,12 +7,13 @@ import { useStore } from '@/lib/store';
 import { today } from '@/lib/util';
 import CommandPalette from './CommandPalette';
 import Nav from './Nav';
-import { Bar, ModalHost, Toasts } from './ui';
+import { Icon } from './Icon';
+import { Bar, ConfirmHost, ModalHost, Toasts } from './ui';
 
 const COLLAPSE_KEY = 'lifeos.nav.collapsed';
 
 function Hud({ onSearch }: { onSearch: () => void }) {
-  const { s, user, act, replace, openForm, closeForm } = useStore();
+  const { s, user, act, replace, openForm, closeForm, ask } = useStore();
   const l = lvl(s.xp), cur = xpFor(l), nx = xpFor(l + 1), idx = titleIdx(l);
 
   const exportData = () => {
@@ -28,7 +29,7 @@ function Hud({ onSearch }: { onSearch: () => void }) {
       const f = i.files?.[0];
       if (!f) return;
       try { replace({ ...DEF(), ...JSON.parse(await f.text()) }); closeForm(); }
-      catch { alert('Invalid backup file'); }
+      catch { ask({ title: 'Not a LifeOS backup', message: 'That file couldn’t be read. Pick a backup you exported from LifeOS.', confirmLabel: 'OK', alertOnly: true }); }
     };
     i.click();
   };
@@ -42,10 +43,10 @@ function Hud({ onSearch }: { onSearch: () => void }) {
             <div className="small muted" style={{ marginBottom: 10 }}>Signed in as {user.email}{user.isAdmin ? ' · admin' : ''}</div>
             <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '4px 0 14px' }} />
             <div className="row wrap-r" style={{ marginBottom: 14 }}>
-              <button type="button" className="btn ghost sm" onClick={exportData}>⬇ Export backup</button>
-              <button type="button" className="btn ghost sm" onClick={importData}>⬆ Import backup</button>
+              <button type="button" className="btn ghost sm" onClick={exportData}><Icon n="bx-download" /> Export backup</button>
+              <button type="button" className="btn ghost sm" onClick={importData}><Icon n="bx-upload" /> Import backup</button>
               <button type="button" className="btn danger"
-                onClick={() => { if (confirm('Erase ALL your LifeOS progress and start over? Export a backup first!')) { replace(DEF()); closeForm(); } }}>Reset all</button>
+                onClick={async () => { if (await ask({ title: 'Erase all progress?', message: 'This wipes your XP, habits, money and skills and starts you over. Export a backup first if you might want it back.', confirmLabel: 'Erase everything', danger: true })) { replace(DEF()); closeForm(); } }}>Reset all</button>
             </div>
           </>
         ),
@@ -53,18 +54,18 @@ function Hud({ onSearch }: { onSearch: () => void }) {
 
   return (
     <div className="hud">
-      <div className="avatar">{AVATARS[idx]}</div>
+      <div className="avatar"><Icon n={AVATARS[idx]} /></div>
       <div className="mid">
         <div className="nm">{s.name} <small>Lv {l} · {TITLES[idx]}</small></div>
         <Bar p={((s.xp - cur) / (nx - cur)) * 100} />
         <div className="small muted" style={{ marginTop: 3 }}>{s.xp - cur} / {nx - cur} XP to level {l + 1}</div>
       </div>
       <div className="chips">
-        <span className="chip">🔥 {gstreak(s)}<span className="hide-s"> day streak</span></span>
-        <span className="chip" style={{ color: 'var(--gold)' }}>🪙 {s.gold}</span>
+        <span className="chip"><Icon n="bxs-hot" className="hot" /> {gstreak(s)}<span className="hide-s"> day streak</span></span>
+        <span className="chip" style={{ color: 'var(--gold)' }}><Icon n="bxs-coin-stack" /> {s.gold}</span>
       </div>
-      <button className="icon-btn" onClick={onSearch} title="Search (⌘K)">🔍</button>
-      <button className="icon-btn" onClick={settings} title="Settings">⚙️</button>
+      <button className="icon-btn" onClick={onSearch} title="Search (⌘K)" aria-label="Search"><Icon n="bx-search" /></button>
+      <button className="icon-btn" onClick={settings} title="Settings" aria-label="Settings"><Icon n="bx-cog" /></button>
     </div>
   );
 }
@@ -118,6 +119,7 @@ export default function Shell({ children }: { children: ReactNode }) {
       </div>
       <CommandPalette open={pal} onClose={() => setPal(false)} toggleNav={toggleNav} />
       <ModalHost />
+      <ConfirmHost />
       <Toasts />
     </>
   );

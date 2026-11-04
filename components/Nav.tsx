@@ -8,6 +8,7 @@ import { authClient } from '@/lib/auth/client';
 import { useStore } from '@/lib/store';
 import { mondayOf, monthOf, pad, today } from '@/lib/util';
 import type { State } from '@/lib/types';
+import { Icon } from './Icon';
 
 type Badge = { text: string; tone: 'accent' | 'bad' | 'gold' | 'live' };
 
@@ -53,16 +54,16 @@ export default function Nav({ onSearch, collapsed, onCollapse }: { onSearch: () 
 
   return (
     <nav>
-      <div className="logo">{collapsed ? 'L' : 'LifeOS'}</div>
+      <div className="logo"><span className="mark"><Icon n="bxs-bolt" /></span><span className="lbl">LifeOS</span></div>
       <button className="navsearch" onClick={onSearch} title="Search or jump to… (⌘K)">
-        <span className="ic">🔍</span><span className="lbl">Search…</span><kbd className="lbl">⌘K</kbd>
+        <span className="ic"><Icon n="bx-search" /></span><span className="lbl">Search…</span><kbd className="lbl">⌘K</kbd>
       </button>
       {items.map((n) => {
         const bd = badges[n.href];
         return (
           <Link key={n.href} href={n.href} className={active(n.href) ? 'on' : ''} title={`${n.label} (g then ${n.key})`}
             onClick={() => window.scrollTo(0, 0)}>
-            <span className="ic">{n.icon}</span><span className="lbl">{n.label}</span>
+            <span className="ic"><Icon n={n.icon} /></span><span className="lbl">{n.label}</span>
             {bd && <span className={`badge ${bd.tone}`}>{bd.text}</span>}
           </Link>
         );
@@ -74,12 +75,12 @@ export default function Nav({ onSearch, collapsed, onCollapse }: { onSearch: () 
           <div className="small muted nm1">{user.email}</div>
           <div className="small">
             {user.isAdmin && <span className="pill adm">ADMIN</span>}{' '}
-            <span className={`sync ${sync}`}>{sync === 'saved' ? '● Saved' : sync === 'saving' ? '● Saving…' : '● Not saved'}</span>
+            <span className={`sync ${sync}`}>{sync === 'saved' ? 'Saved' : sync === 'saving' ? 'Saving…' : 'Not saved'}</span>
           </div>
         </div>
         <div className="row ubtns">
-          <button className="icon-btn" onClick={onCollapse} title={collapsed ? 'Expand menu' : 'Collapse menu'}>{collapsed ? '»' : '«'}</button>
-          <button className="icon-btn" onClick={signOut} title="Sign out">⎋</button>
+          <button className="icon-btn" onClick={onCollapse} title={collapsed ? 'Expand menu' : 'Collapse menu'}><Icon n={collapsed ? 'bx-chevrons-right' : 'bx-chevrons-left'} /></button>
+          <button className="icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out"><Icon n="bx-log-out" /></button>
         </div>
       </div>
     </nav>

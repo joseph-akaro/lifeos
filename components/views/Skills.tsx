@@ -2,12 +2,14 @@
 import { addSkill, startFocus } from '@/lib/quick';
 import { useRouter } from 'next/navigation';
 import { TITLES, award, skillLvl, skillMin, skillMinFor, titleIdx } from '@/lib/engine';
+import { skillIcon } from '@/lib/icons';
 import { useStore } from '@/lib/store';
 import { addDays, hm, today, uid } from '@/lib/util';
 import { Bar, Empty } from '../ui';
+import { Icon } from '../Icon';
 
 export default function Skills() {
-  const { s, act, openForm } = useStore();
+  const { s, act, openForm, ask } = useStore();
   const router = useRouter();
   const wk = addDays(today(), -6);
 
@@ -21,7 +23,7 @@ export default function Skills() {
       x.focus.push({ date: today(), min: m, skillId: id, label: v.note || sk.name });
       award(x, fx, m, 'skills', `${sk.name} +${m}m`);
       const after = skillLvl(skillMin(x, id));
-      if (after > before) fx.toast(`${sk.icon} ${sk.name} reached Lv ${after}!`, true);
+      if (after > before) fx.toast(`${sk.name} reached level ${after}`, true);
     }), { btn: 'Log' });
 
   return (
@@ -34,7 +36,7 @@ export default function Skills() {
           return (
             <div className="card skill" key={k.id}>
               <div className="row">
-                <span className="big">{k.icon}</span>
+                <span className="big"><Icon n={skillIcon(k.icon)} /></span>
                 <div className="grow"><b>{k.name}</b><div className="small muted">{k.cat} · {TITLES[titleIdx(l)]}</div></div>
                 <span className="lvl">Lv {l}</span>
               </div>
@@ -42,9 +44,9 @@ export default function Skills() {
               <div className="small muted">{hm(m)} total · {hm(w)} this week · next level at {hm(b)}</div>
               <div className="row" style={{ marginTop: 10 }}>
                 <button className="btn sm" onClick={() => practice(k.id, k.name)}>Log practice</button>
-                <button className="btn ghost sm" onClick={() => { startFocus({ act }, 25, k.name, k.id); router.push('/time'); }}>⏱ Timer</button>
+                <button className="btn ghost sm" onClick={() => { startFocus({ act }, 25, k.name, k.id); router.push('/time'); }}><Icon n="bx-timer" /> Timer</button>
                 <span className="grow" />
-                <button className="btn danger" onClick={() => confirm('Delete this skill? Logged time stays in your focus history.') && act((x) => { x.skills = x.skills.filter((y) => y.id !== k.id); })}>✕</button>
+                <button className="btn danger" aria-label="Delete" onClick={async () => { if (await ask({ title: `Delete ${k.name}?`, message: 'The skill goes away, but the practice time you logged stays in your focus history.', confirmLabel: 'Delete', danger: true })) act((x) => { x.skills = x.skills.filter((y) => y.id !== k.id); }); }}><Icon n="bx-trash" /></button>
               </div>
             </div>
           );

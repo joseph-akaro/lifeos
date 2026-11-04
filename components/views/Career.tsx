@@ -4,16 +4,17 @@ import { award } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { mondayOf, today, uid } from '@/lib/util';
 import { Bar, Chk, Empty } from '../ui';
+import { Icon } from '../Icon';
 
 export default function Career() {
-  const { s, act, openForm } = useStore();
+  const { s, act, openForm, ask } = useStore();
   const wk = mondayOf(today());
   const reviewed = s.reviews.some((r) => r.wk === wk);
 
   const addObj = () =>
     openForm('New objective', [
       { k: 'title', l: 'Objective', ph: 'Get AWS certified' },
-      { k: 'due', l: 'Target date (optional)', t: 'date', req: false },
+      { k: 'due', l: 'Target date', t: 'date', req: false },
     ], (v) => act((x) => { x.objectives.push({ id: uid(), title: v.title.trim(), due: v.due || '', steps: [], done: false, paid: false }); }), { btn: 'Create' });
 
   const addStep = (id: string) =>
@@ -51,7 +52,7 @@ export default function Career() {
       <h2 className="pg">Career
         <span className="row">
           <button className="btn ghost" onClick={() => addWin({ act, openForm })}>+ Log a win</button>
-          <button className="btn" disabled={reviewed} onClick={review}>{reviewed ? 'Reviewed this week ✓' : 'Weekly review'}</button>
+          <button className="btn" disabled={reviewed} onClick={review}>{reviewed ? <><Icon n="bx-check" /> Reviewed this week</> : 'Weekly review'}</button>
         </span>
       </h2>
       <div className="grid g2">
@@ -62,9 +63,9 @@ export default function Career() {
             return (
               <div key={o.id} style={{ marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--line)' }}>
                 <div className="row">
-                  <b className="grow">{o.done ? '🚀 ' : '🧭 '}{o.title}</b>
+                  <b className="grow"><Icon n={o.done ? 'bxs-rocket' : 'bx-compass'} className="lead" /> {o.title}</b>
                   {o.due && <span className="pill">{o.due}</span>}
-                  <button className="btn danger" onClick={() => confirm('Delete this objective?') && act((x) => { x.objectives = x.objectives.filter((y) => y.id !== o.id); })}>✕</button>
+                  <button className="btn danger" aria-label="Delete" onClick={async () => { if (await ask({ title: 'Delete this objective?', message: `“${o.title}” and its steps will be removed.`, confirmLabel: 'Delete', danger: true })) act((x) => { x.objectives = x.objectives.filter((y) => y.id !== o.id); }); }}><Icon n="bx-trash" /></button>
                 </div>
                 {n > 0 && <Bar p={(d / n) * 100} color="var(--career)" />}
                 {o.steps.map((st) => (
