@@ -1,4 +1,5 @@
 import type { Area, Fx, State, Tx } from './types';
+import { DEFAULT_PCT, computeBudget } from './budget';
 import { addDays, monthOf, today, uid } from './util';
 
 export const AREAS: Record<Area, { n: string; i: string; c: string }> = {
@@ -12,16 +13,10 @@ export const AREA_KEYS = Object.keys(AREAS) as Area[];
 export const AREA_OPTS: [string, string][] = AREA_KEYS.map((k) => [k, AREAS[k].n]);
 export const TITLES = ['Rookie', 'Apprentice', 'Adventurer', 'Challenger', 'Veteran', 'Expert', 'Master', 'Champion', 'Legend', 'Mythic'];
 export const AVATARS = ['bx-leaf', 'bx-bulb', 'bx-compass', 'bx-rocket', 'bx-shield-quarter', 'bx-medal', 'bx-award', 'bx-crown', 'bx-diamond', 'bx-planet'];
-export const EXP_CATS = ['Food', 'Transport', 'Housing', 'Bills', 'Health', 'Fun', 'Learning', 'Shopping', 'Other'];
-/** Budget categories are grouped so the budget reads as needs vs. wants vs. growth. Custom categories land in "Other". */
-export const CAT_GROUPS: { id: string; title: string; hint: string; cats: string[] }[] = [
-  { id: 'essentials', title: 'Essentials', hint: 'Things you need every month', cats: ['Housing', 'Bills', 'Food', 'Transport', 'Health'] },
-  { id: 'lifestyle', title: 'Lifestyle', hint: 'Things you want', cats: ['Fun', 'Shopping'] },
-  { id: 'growth', title: 'Growth', hint: 'Investing in yourself', cats: ['Learning'] },
-];
+export const EXP_CATS = ['Food', 'Transport', 'Housing', 'Bills', 'Health', 'Debt', 'Fun', 'Shopping', 'Learning', 'Other'];
 export const CAT_ICONS: Record<string, string> = {
   Housing: 'bx-home-alt-2', Bills: 'bx-receipt', Food: 'bx-restaurant', Transport: 'bx-bus', Health: 'bx-plus-medical',
-  Fun: 'bx-joystick', Shopping: 'bx-shopping-bag', Learning: 'bx-book-open', Other: 'bx-dots-horizontal-rounded',
+  Debt: 'bx-credit-card', Fun: 'bx-joystick', Shopping: 'bx-shopping-bag', Learning: 'bx-book-open', Other: 'bx-dots-horizontal-rounded',
 };
 export const catIcon = (c: string) => CAT_ICONS[c] ?? 'bx-purchase-tag';
 export const INC_CATS = ['Salary', 'Freelance', 'Business', 'Gift', 'Other'];
@@ -38,6 +33,7 @@ export const DEF = (): State => ({
     { id: uid(), name: 'Check my money', area: 'wealth', diff: 1, done: [] },
   ],
   country: '', stays: [],
+  alloc: { basis: 'logged', expected: 0, pct: { ...DEFAULT_PCT } }, catMap: {},
   tasks: [], timer: null, focus: [], blocks: [], tx: [], txXp: {}, budget: {}, goals: [], skills: [],
   objectives: [], wins: [], reviews: [], trophies: {},
   rewards: [
@@ -93,11 +89,10 @@ export const TROPHIES: { id: string; i: string; n: string; d: string; t: (s: Sta
   { id: 'tx20', i: 'bx-book-content', n: 'Bookkeeper', d: 'Log 20 transactions', t: (s) => s.tx.length >= 20 },
   { id: 'goal', i: 'bxs-bank', n: 'Goal Getter', d: 'Fully fund a savings goal', t: (s) => s.goals.some((g) => g.paid) },
   {
-    id: 'bud', i: 'bx-shield-alt-2', n: 'Budget Boss', d: 'Month with 5+ expenses and all budgets respected',
+    id: 'bud', i: 'bx-shield-alt-2', n: 'Budget Boss', d: 'Month with 5+ expenses and every spending bucket within its share',
     t: (s) => {
-      const ex = monthTx(s, s.ui.month, 'expense');
-      const ks = Object.keys(s.budget);
-      return ex.length >= 5 && ks.length > 0 && ks.every((k) => sumTx(ex.filter((t) => t.cat === k)) <= s.budget[k]);
+      const b = computeBudget(s, s.ui.month);
+      return monthTx(s, s.ui.month, 'expense').length >= 5 && b.base > 0 && !b.buckets.some((x) => x.over);
     },
   },
   { id: 'sk5', i: 'bx-wrench', n: 'Specialist', d: 'Get any skill to level 5', t: (s) => s.skills.some((k) => skillLvl(skillMin(s, k.id)) >= 5) },

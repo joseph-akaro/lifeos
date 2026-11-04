@@ -17,6 +17,8 @@ export interface ModalSpec {
   btn: string;
   onSubmit: (v: Record<string, string>) => void;
   extra?: ReactNode;
+  /** Return a message to block the save and show it in the form, or null when the values are fine. */
+  validate?: (v: Record<string, string>) => string | null;
 }
 export interface DialogSpec {
   title: string;
@@ -39,7 +41,7 @@ export interface Store {
   now: number;
   act: (fn: (s: State, fx: Fx) => void) => void;
   replace: (s: State) => void;
-  openForm: (title: string, fields: Field[], onSubmit: (v: Record<string, string>) => void, opts?: { btn?: string; extra?: ReactNode }) => void;
+  openForm: (title: string, fields: Field[], onSubmit: (v: Record<string, string>) => void, opts?: { btn?: string; extra?: ReactNode; validate?: ModalSpec['validate'] }) => void;
   closeForm: () => void;
   modal: ModalSpec | null;
   /** In-app replacement for window.confirm / window.alert. Resolves true when confirmed. */
@@ -212,7 +214,7 @@ export function StoreProvider({ user, children }: { user: AuthUser; children: Re
   }, [timerOn, act]);
 
   const openForm: Store['openForm'] = useCallback((title, fields, onSubmit, opts) => {
-    setModal({ id: ++seq.current, title, fields, onSubmit, btn: opts?.btn ?? 'Save', extra: opts?.extra });
+    setModal({ id: ++seq.current, title, fields, onSubmit, btn: opts?.btn ?? 'Save', extra: opts?.extra, validate: opts?.validate });
   }, []);
   const closeForm = useCallback(() => setModal(null), []);
   const ask = useCallback((o: AskOpts) => new Promise<boolean>((resolve) => {

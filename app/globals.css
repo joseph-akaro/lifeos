@@ -312,3 +312,14 @@ nav a.on .badge{background:var(--accent);color:var(--on-accent)}
 .ratelist{margin-top:6px}
 .ratelist .item.cur{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:8px;padding-left:8px;padding-right:8px}
 @media(max-width:760px){.fxrate{text-align:left;width:100%}}
+.formerr{display:flex;align-items:center;gap:6px;color:var(--bad);font-size:13px;margin:-4px 0 12px}
+
+/* income split */
+.splitbar{display:flex;height:10px;border-radius:99px;overflow:hidden;gap:2px;margin:10px 0 6px}
+.splitbar i{display:block;min-width:2px}
+.bucket{padding:12px 0;border-top:1px solid var(--line)}
+.bucket:first-of-type{border-top:0}
+.sugs.ro{margin-top:6px}
+.chipro{border:1px solid var(--line);border-radius:7px;padding:1px 8px;font-size:12px;color:var(--mute)}
+.chipro b{color:var(--text);font-weight:600}
+.bmap{margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
